@@ -158,3 +158,18 @@ The long Settings menu must be scrolled to reach these controls.
 - Two-direction final build loaded in simulator; physical watch not connected.
 - START/menu opens picker, tap refreshes. No favorites or manual pinning.
 - Distances now marked direct/approximate and hidden without usable GPS.
+# Station compass — 2026-09-11
+
+- FR965 production and test builds succeed. All 10 simulator tests pass,
+  including cardinal bearings, watch rotation, north wraparound and missing data.
+- Uses Sensor.Info.heading (true-north compass orientation), with the Sensor
+  permission. Events are enabled on board show and disabled on hide; readings
+  expire after three seconds. Existing redraw timer renders the arrow at 1 Hz.
+- The target is the displayed board station, including automatic nearest and
+  cached boards. Current-location validity is checked separately; a station
+  coordinate is never substituted for the user's GPS fix.
+- Physical FR965 check remains: hold level, rotate while stationary, then walk
+  with the watch pointed sideways; the arrow should stay aimed at the station.
+  Verify missing heading hides it and START still opens the station picker.
+- Selected-station mode retains its existing GPS policy: once the user's fix
+  expires, the arrow hides until a usable fix is acquired again.

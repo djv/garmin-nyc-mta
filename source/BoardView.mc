@@ -4,6 +4,7 @@ using Toybox.PersistedContent;
 using Toybox.Timer;
 using Toybox.WatchUi;
 using Toybox.System;
+using Toybox.Sensor;
 
 class BoardView extends WatchUi.View {
     static const REFRESH_MS = 60000;
@@ -11,6 +12,9 @@ class BoardView extends WatchUi.View {
     hidden var _nextLocation = 0;
     hidden var _requestSelection = null;
     hidden var _freshGpsPending = false;
+    hidden var _heading = null;
+    hidden var _headingTime = 0;
+    hidden var _boardStation = null;
 
     hidden var _tracker;
     hidden var _redrawTimer;
@@ -59,9 +63,12 @@ class BoardView extends WatchUi.View {
 
     function onShow() {
         _visible = true;
+        _heading = null;
+        try { Sensor.enableSensorEvents(method(:onCompass)); } catch (e) {}
         if (_boardName == null && selection == null) {
             var cached = BoardStore.load();
             if (cached != null) {
+                _boardStation = cached["board"]["station"];
                 _staleTag = "Last station";
                 _partial = cached["board"]["partial"] == true;
                 render(cached["board"]["station"]["name"], _staleTag, cached["board"]["arrivals"]);
@@ -74,6 +81,8 @@ class BoardView extends WatchUi.View {
     }
 
     function onHide() {
+        try { Sensor.enableSensorEvents(null); } catch (e) {}
+        _heading = null;
         _freshGpsPending = false;
         _visible = false;
         _requestGen += 1;
@@ -99,7 +108,19 @@ class BoardView extends WatchUi.View {
             }
         }
         MtaBoardRenderer.draw(dc, _boardName != null ? _boardName : _statusTitle,
-            meta, _boardArrivals);
+            meta, _boardArrivals, stationDirection());
+    }
+
+    function onCompass(info as Sensor.Info) as Void {
+        if (!_visible) { return; }
+        _heading = info.heading;
+        _headingTime = System.getTimer();
+    }
+
+    function stationDirection() {
+        if (_boardName == null || System.getTimer() - _headingTime > 3000 ||
+            !Config.fixAge((System.getTimer() - locationTime) / 1000.0)) { return null; }
+        return StationCompass.direction(locationLat, locationLon, _boardStation, _heading);
     }
 
     // ---- public (delegate) ----
@@ -203,6 +224,7 @@ class BoardView extends WatchUi.View {
             }
         }
         _partial = parsed[:raw]["partial"] == true;
+        _boardStation = parsed[:raw]["station"];
         render(parsed[:name], _staleTag, parsed[:arrivals]);
         refreshGpsAfterCache();
     }

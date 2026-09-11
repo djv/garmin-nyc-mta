@@ -1,9 +1,10 @@
 using Toybox.Graphics;
 using Toybox.Lang;
+using Toybox.Math;
 
 // MTA-style route bullets, white destinations and a fixed arrival-time column.
 module MtaBoardRenderer {
-    function draw(dc, name, meta, arrivals) {
+    function draw(dc, name, meta, arrivals, direction) {
         var w = dc.getWidth();
         var h = dc.getHeight();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
@@ -38,15 +39,18 @@ module MtaBoardRenderer {
             }
         }
         dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-        // Upper-right cue points toward the physical START key. Draw the
-        // arrow geometrically so it does not depend on font glyph support.
-        dc.drawText(w*0.75, h*0.12, Graphics.FONT_XTINY, "Stations",
-            Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
-        var ax = w*0.79;
-        var ay = h*0.10;
-        dc.drawLine(ax-10, ay+10, ax, ay);
-        dc.drawLine(ax-7, ay, ax, ay);
-        dc.drawLine(ax, ay, ax, ay+7);
+        if (direction != null) {
+            var ax = w*0.73;
+            var ay = h*0.12;
+            var dx = Math.sin(direction);
+            var dy = -Math.cos(direction);
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(3);
+            dc.drawLine(ax-12*dx, ay-12*dy, ax+12*dx, ay+12*dy);
+            dc.drawLine(ax+12*dx, ay+12*dy, ax+3*dx-7*dy, ay+3*dy+7*dx);
+            dc.drawLine(ax+12*dx, ay+12*dy, ax+3*dx+7*dy, ay+3*dy-7*dx);
+            dc.setPenWidth(1);
+        }
         if (row == 0 && arrivals != null) {
             dc.setColor(0xA8A8A8, Graphics.COLOR_TRANSPARENT);
             dc.drawText(w/2, h*0.52, Graphics.FONT_SMALL, "No trains",

@@ -57,8 +57,11 @@ refreshes its cached station by ID without GPS.
 The glance uses the most recently used saved selection matching its cached
 station, including that selection's line and direction on refresh. With no
 matching recent selection, it shows the next arrival across lines/directions.
-Glance refresh never changes recency. The board's upper-right Stations arrow
-points toward the physical START button.
+Glance refresh never changes recency. The board's upper-right arrow points toward
+the displayed station relative to the top of the watch face. Hold the watch level
+to read it. Compass events run only while the board is visible. Missing heading
+(or no event for three seconds), missing/expired GPS, or coincident coordinates
+hide the arrow. This is a straight-line bearing, not walking directions.
 
 Glance: while visible, checks every five seconds and refreshes arrivals once
 the cached data reaches one minute old. Requests time out after 15 seconds;
