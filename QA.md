@@ -1,5 +1,11 @@
 # Verification — 2026-09-10
 
+Glance refresh fix: FR965 production and test builds compile. Left the simulator
+glance visible without interaction and observed another automatic cache-age reset
+and updated countdown after the one-minute refresh interval. Simulator memory
+display was 11.3/59.8 kB. Timeout/late-callback guards inspected in code; physical
+watch and failure-recovery paths not exercised for this revision.
+
 Built for Forerunner 965 with Connect IQ SDK 9.1.0 and exercised in simulator 5.2.0.
 
 Verified:

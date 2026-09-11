@@ -3,11 +3,12 @@ using Toybox.Lang;
 using Toybox.PersistedContent;
 using Toybox.Timer;
 using Toybox.WatchUi;
+using Toybox.System;
 
 (:glance)
 class MtaGlanceView extends WatchUi.GlanceView {
-    static const REFRESH_MIN_S = 120;
-    static const REDRAW_MS = 30000;
+    static const REFRESH_MIN_S = 60;
+    static const REDRAW_MS = 5000;
 
     hidden var _primary;
     hidden var _stationName;
@@ -15,6 +16,10 @@ class MtaGlanceView extends WatchUi.GlanceView {
     hidden var _refreshing;
     hidden var _redrawTimer;
     hidden var _route;
+    hidden var _generation = 0;
+    hidden var _deadline = 0;
+    hidden var _retryAt = 0;
+    hidden var _offline = false;
 
     function initialize() {
         GlanceView.initialize();
@@ -31,12 +36,25 @@ class MtaGlanceView extends WatchUi.GlanceView {
         paintFromCache();
         _redrawTimer.stop();
         _redrawTimer.start(method(:onRedrawTick), REDRAW_MS, true);
+        refreshIfDue();
+    }
+
+    function refreshIfDue() {
+        if (!_visible) { return; }
+        var now = System.getTimer();
+        if (_refreshing && now >= _deadline) {
+            _generation += 1;
+            _refreshing = false;
+            _offline = true;
+            _retryAt = now + 30000;
+        }
         var entry = BoardStore.load();
         var age = BoardStore.ageSeconds(entry);
-        if (!_refreshing && (age == null || (age as Lang.Number) >= REFRESH_MIN_S)) {
-            // Glance has no GPS: refresh fixed Lorimer board only as heartbeat.
-            // Live location board comes from opening the app.
+        if (!_refreshing && now >= _retryAt && (age == null || age < 0 || (age as Lang.Number) >= REFRESH_MIN_S)) {
+            // Glance has no GPS; use the last cached station.
             _refreshing = true;
+            _generation += 1;
+            _deadline = now + 15000;
             var lat = Config.FALLBACK_LAT;
             var lon = Config.FALLBACK_LON;
             if (entry instanceof Lang.Dictionary && entry["board"] instanceof Lang.Dictionary) {
@@ -46,29 +64,40 @@ class MtaGlanceView extends WatchUi.GlanceView {
                     lon = station["lon"];
                 }
             }
-            MtaClient.fetchBoard(lat, lon, method(:onBoard));
+            var request = new GlanceRequest(self, _generation);
+            MtaClient.fetchBoard(lat, lon, request.method(:onResponse));
         }
     }
 
     function onHide() {
         _visible = false;
+        _generation += 1;
+        _refreshing = false;
         _redrawTimer.stop();
     }
 
     function onRedrawTick() {
         if (_visible) {
+            refreshIfDue();
             WatchUi.requestUpdate();
         } else {
             _redrawTimer.stop();
         }
     }
 
-    function onBoard(code as Lang.Number, data as Lang.Dictionary or Lang.String or PersistedContent.Iterator or Null) as Void {
+    function onBoard(generation, code, data) {
+        if (!_visible || !_refreshing || generation != _generation) { return; }
         _refreshing = false;
+        _offline = true;
+        _retryAt = System.getTimer() + 30000;
         if (code == 200 && data instanceof Lang.Dictionary) {
             var stations = data["stations"];
-            if (stations instanceof Array && stations.size() > 0) {
+            if (stations instanceof Array && stations.size() > 0 &&
+                stations[0] instanceof Lang.Dictionary &&
+                stations[0]["station"] instanceof Lang.Dictionary &&
+                stations[0]["arrivals"] instanceof Lang.Array) {
                 BoardStore.save(stations[0]);
+                _offline = false;
             }
         }
         paintFromCache();
@@ -87,7 +116,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         }
         var b = entry["board"] as Lang.Dictionary;
         var station = b["station"];
-        _stationName = MtaFormat.safeText(station != null ? station["name"] : null, "MTA");
+        _stationName = MtaFormat.safeText(station instanceof Lang.Dictionary ? station["name"] : null, "MTA");
         var arrs = b["arrivals"];
         var upcoming = [] as Lang.Array;
         if (arrs instanceof Array) {
@@ -100,7 +129,9 @@ class MtaGlanceView extends WatchUi.GlanceView {
             _route = MtaFormat.safeText(arrs[0]["route"], "?");
             _primary = MtaFormat.arrivalWhen(arrs[0]) + " " + MtaFormat.safeText(arrs[0]["dest"], "");
         } else {
-            _primary = "No trains";
+            var age = BoardStore.ageSeconds(entry);
+            _primary = _offline ? "Offline" : (_refreshing ? "Refreshing" :
+                (age == null || age >= REFRESH_MIN_S ? "Stale data" : "No trains"));
         }
     }
 
@@ -109,7 +140,8 @@ class MtaGlanceView extends WatchUi.GlanceView {
             return "Open app";
         }
         var age = BoardStore.ageSeconds(BoardStore.load());
-        return (age != null ? MtaFormat.ageText(age) + " " : "") + _stationName;
+        return (_refreshing ? "Updating " : (_offline ? "Offline " : "")) +
+            (age != null ? MtaFormat.ageText(age) + " " : "") + _stationName;
     }
 
     function onUpdate(dc) {
@@ -130,5 +162,18 @@ class MtaGlanceView extends WatchUi.GlanceView {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(left, y + h1 + 4 + h2 / 2, f2, s,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+}
+
+(:glance)
+class GlanceRequest {
+    hidden var _view;
+    hidden var _generation;
+    function initialize(view, generation) {
+        _view = view;
+        _generation = generation;
+    }
+    function onResponse(code as Lang.Number, data as Lang.Dictionary or Lang.String or PersistedContent.Iterator or Null) as Void {
+        _view.onBoard(_generation, code, data);
     }
 }

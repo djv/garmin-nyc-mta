@@ -48,6 +48,12 @@ Glance refreshes the cached station on show if at least 120s old; it has no
 background network service.
 # Station picker and recent commutes
 
+Glance: while visible, checks every five seconds and refreshes arrivals once
+the cached data reaches one minute old. Requests time out after 15 seconds;
+failures retry after 30 seconds and retain the previous cache with an Offline
+indicator. Hiding the glance stops polling and invalidates pending callbacks.
+This is foreground refresh only, not a background service while the glance is hidden.
+
 Press START/select (or hold UP/menu) on the board to open Stations. Tapping
 the board still refreshes. Choose Nearby stations, a line, then one of its
 two GTFS travel directions. Destination names label the directions; short-turn
