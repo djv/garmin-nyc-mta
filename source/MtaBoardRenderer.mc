@@ -38,8 +38,15 @@ module MtaBoardRenderer {
             }
         }
         dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w/2, h*0.89, Graphics.FONT_XTINY, "START: stations",
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        // Upper-right cue points toward the physical START key. Draw the
+        // arrow geometrically so it does not depend on font glyph support.
+        dc.drawText(w*0.75, h*0.12, Graphics.FONT_XTINY, "Stations",
+            Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+        var ax = w*0.79;
+        var ay = h*0.10;
+        dc.drawLine(ax-10, ay+10, ax, ay);
+        dc.drawLine(ax-7, ay, ax, ay);
+        dc.drawLine(ax, ay, ax, ay+7);
         if (row == 0 && arrivals != null) {
             dc.setColor(0xA8A8A8, Graphics.COLOR_TRANSPARENT);
             dc.drawText(w/2, h*0.52, Graphics.FONT_SMALL, "No trains",

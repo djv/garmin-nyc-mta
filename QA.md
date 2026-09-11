@@ -1,5 +1,10 @@
 # Verification — 2026-09-10
 
+Recent-selection glance update: simulator tests passed for most-recent matching
+station selection, route/direction exclusion, no-match fallback, and existing
+recency rules. Production build successful. Upper-right Stations arrow visually
+verified on the live Lorimer board; bottom hint removed. No physical-watch test.
+
 UI polish: blue train launcher icon rendered from versioned SVG; simulator
 glance visually checked with smaller primary type and muted metadata. Live
 Lorimer board checked with four rows, full Canarsie labels, wider destination

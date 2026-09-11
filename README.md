@@ -48,6 +48,12 @@ Glance refreshes the cached station on show if at least 120s old; it has no
 background network service.
 # Station picker and recent commutes
 
+The glance uses the most recently used saved selection matching its cached
+station, including that selection's line and direction on refresh. With no
+matching recent selection, it shows the next arrival across lines/directions.
+Glance refresh never changes recency. The board's upper-right Stations arrow
+points toward the physical START button.
+
 Glance: while visible, checks every five seconds and refreshes arrivals once
 the cached data reaches one minute old. Requests time out after 15 seconds;
 failures retry after 30 seconds and retain the previous cache with an Offline

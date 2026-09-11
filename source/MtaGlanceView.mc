@@ -20,6 +20,8 @@ class MtaGlanceView extends WatchUi.GlanceView {
     hidden var _deadline = 0;
     hidden var _retryAt = 0;
     hidden var _offline = false;
+    hidden var _selection = null;
+    hidden var _forceRefresh = false;
 
     function initialize() {
         GlanceView.initialize();
@@ -33,6 +35,13 @@ class MtaGlanceView extends WatchUi.GlanceView {
 
     function onShow() {
         _visible = true;
+        var cached = BoardStore.load();
+        _selection = null;
+        if (cached instanceof Lang.Dictionary && cached["board"] instanceof Lang.Dictionary) {
+            _selection = GlanceSelection.forStation(cached["board"]["station"]);
+        }
+        // Cached first-eight arrivals may omit this direction: fetch it explicitly.
+        _forceRefresh = _selection != null;
         paintFromCache();
         _redrawTimer.stop();
         _redrawTimer.start(method(:onRedrawTick), REDRAW_MS, true);
@@ -46,13 +55,15 @@ class MtaGlanceView extends WatchUi.GlanceView {
             _generation += 1;
             _refreshing = false;
             _offline = true;
+            _forceRefresh = true;
             _retryAt = now + 30000;
         }
         var entry = BoardStore.load();
         var age = BoardStore.ageSeconds(entry);
-        if (!_refreshing && now >= _retryAt && (age == null || age < 0 || (age as Lang.Number) >= REFRESH_MIN_S)) {
+        if (!_refreshing && now >= _retryAt && (_forceRefresh || age == null || age < 0 || (age as Lang.Number) >= REFRESH_MIN_S)) {
             // Glance has no GPS; use the last cached station.
             _refreshing = true;
+            _forceRefresh = false;
             _generation += 1;
             _deadline = now + 15000;
             var lat = Config.FALLBACK_LAT;
@@ -65,7 +76,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
                 }
             }
             var request = new GlanceRequest(self, _generation);
-            MtaClient.fetchBoard(lat, lon, request.method(:onResponse));
+            MtaClient.fetchSelection(lat, lon, _selection, request.method(:onResponse));
         }
     }
 
@@ -89,6 +100,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         if (!_visible || !_refreshing || generation != _generation) { return; }
         _refreshing = false;
         _offline = true;
+        _forceRefresh = true;
         _retryAt = System.getTimer() + 30000;
         if (code == 200 && data instanceof Lang.Dictionary) {
             var stations = data["stations"];
@@ -98,6 +110,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
                 stations[0]["arrivals"] instanceof Lang.Array) {
                 BoardStore.save(stations[0]);
                 _offline = false;
+                _forceRefresh = false;
             }
         }
         paintFromCache();
@@ -121,7 +134,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         var upcoming = [] as Lang.Array;
         if (arrs instanceof Array) {
             for (var i = 0; i < arrs.size(); i += 1) {
-                if (MtaFormat.upcoming(arrs[i])) { upcoming.add(arrs[i]); }
+                if (GlanceSelection.matches(arrs[i], _selection) && MtaFormat.upcoming(arrs[i])) { upcoming.add(arrs[i]); }
             }
         }
         arrs = upcoming as Lang.Array;
