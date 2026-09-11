@@ -1,5 +1,5 @@
 #!/bin/bash
-# Fast dev loop: build -> relaunch app -> wait for its board request -> screenshot.
+# Fast dev loop: build -> relaunch app -> allow GPS/network startup -> screenshot.
 # Usage: ./dev-loop.sh [shot-name]
 # Env: LD_LIBRARY_PATH must include webkit libs (exported below).
 set -e
@@ -17,7 +17,9 @@ sleep 1
 setsid nohup stdbuf -o0 -e0 monkeydo build/NycMta.prg fr965 > /tmp/app.log 2>&1 < /dev/null &
 echo $! > /tmp/mta-app.pid
 
-timeout 60 tail -n 0 -F /home/d/code/mta-proxy/proxy.log | grep -a -m1 "limitStations=3"
+# Allow the app GPS/network watchdog to settle; inspect the screenshot for success.
+# No laptop proxy/log is required with the hosted default.
+sleep 30
 wmctrl -a "CIQ Simulator"
 gnome-screenshot -w -f /tmp/${SHOT}.png
 python3 -c "

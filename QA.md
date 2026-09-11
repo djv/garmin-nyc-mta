@@ -1,3 +1,42 @@
+# Hetzner hosting verification — 2026-09-10 (America/New_York)
+
+Public base: `https://ubuntu-8gb-nbg1-1.tailca4726.ts.net`.
+Deployment uses `/home/dev/mta-proxy/current`, Python 3.12, a fully pinned venv,
+and 496 bundled station records. No static ZIP parsing is needed on the server.
+
+- 12 proxy tests pass, including preserved HTTP 503 response, partial feed
+  behavior, configurable binding, health failure classification and GPS-free logs.
+- Public health, Lorimer nearby lookup, merged Union Square, station-ID lookup,
+  N/S route filtering and 400/404 error bodies pass. Existing five smoke checks pass.
+- Eight simultaneous requests immediately after process restart (empty feed
+  cache) all succeed in 0.988–2.120 seconds, below the watch's ten-second timeout.
+- SIGKILL to only mta-proxy's MainPID changes PID and NRestarts from 0 to 1;
+  service returns active after the configured three-second delay.
+- Listener is 127.0.0.1:8087. Proxy and five-minute health timer are enabled;
+  timer active, dev Linger=yes, tailscaled enabled. No shared-server reboot.
+- Before/after Funnel JSON matches exactly after removing only the added /mta
+  handler on 443. Existing 8443 and HN/Sofia handlers remain unchanged.
+- Sofia public nearby API returns 200 and real stop data. HN public API returns
+  the same 401 {"error":"No session"} as its local pre-change baseline; authenticated
+  HN content was not exercised. This verifies routing and unchanged auth behavior.
+- Journald contains method/path/status/timing without lat/lon queries. The health
+  service logs healthy station=L03; upstream failures have their own classification.
+- FR965 production and test builds succeed with SDK 9.1.0. Six simulator tests
+  pass, including persisted legacy-URL replacement, custom URL preservation and
+  existing location, glance selection and commute regressions. MonkeyDo exits 1
+  despite its explicit PASSED (6 passed, 0 failed, 0 errors) summary.
+- Production simulator shows a refreshing populated glance and a live Lorimer St
+  board with four L arrivals through the hosted endpoint. Physical watch not installed.
+
+- Ten-minute public soak passes: 39 requests over 600.6 seconds, no failed or
+  partial responses; maximum 8.165 seconds. Most requests were under one second.
+  This is a measured run, not a guarantee of future MTA or network availability.
+- Leaving the populated glance visible across its refresh interval resets the
+  data age and changes live arrivals.
+- FR965 production SHA-256: `df5eb6053c2c37cc879f1e602aded6b47664185e5fb7576d73d18e37e0621b50`.
+
+---
+
 # Location reliability — 2026-09-10
 
 FR965 production build successful with SDK 9.1.0. Five simulator test functions
@@ -70,8 +109,8 @@ visually easy to confuse with arrival-data age.
 Optional field checklist:
 
 1. Connect watch by USB/MTP and copy build/NycMta.prg into GARMIN/APPS.
-2. Keep the laptop proxy and current HTTPS tunnel running; keep Garmin Connect
-   connected on the phone. Tunnel URLs are temporary; update proxyUrl if changed.
+2. Keep Garmin Connect connected on the phone. The persistent Hetzner proxy
+   requires no laptop proxy/tunnel.
 3. Open outdoors: verify nearest station, four arrivals and refreshed age.
 4. Leave board open for a minute; confirm refresh preserves the board.
 5. Return to glance: verify station, arrival time and cache age.

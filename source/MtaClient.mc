@@ -4,13 +4,19 @@ using Toybox.Lang;
 
 (:glance)
 class MtaClient {
-    static const FALLBACK_BASE_URL = "https://mandatory-paintings-buf-invention.trycloudflare.com";
+    static const FALLBACK_BASE_URL = "https://ubuntu-8gb-nbg1-1.tailca4726.ts.net";
+
+    static const LEGACY_BASE_URL = "https://mandatory-paintings-buf-invention.trycloudflare.com";
 
     // App setting is the single source of truth; const is the fallback.
     static function baseUrl() {
         try {
             var v = Application.Properties.getValue("proxyUrl");
             if (v != null && (v as Lang.String).length() > 0) {
+                if ((v as Lang.String).equals(LEGACY_BASE_URL)) {
+                    Application.Properties.setValue("proxyUrl", FALLBACK_BASE_URL);
+                    return FALLBACK_BASE_URL;
+                }
                 return v as Lang.String;
             }
         } catch (ex) {}

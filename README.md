@@ -9,13 +9,12 @@ Colors follow https://www.mta.info/document/168976 and the bundled MTA routes.tx
 Badges are also used in the glance. Destinations are white; times have their own
 right-aligned column. Saved GPS describes location reuse, separate from data age.
 
-## Proxy (laptop, required)
+## Hosted proxy
 
-```bash
-python3 server.py  # ~/code/mta-proxy, :8087
-```
+`https://ubuntu-8gb-nbg1-1.tailca4726.ts.net`
 
-Endpoints: `GET /mta/health`, `GET /mta/board?lat&lon&limitStations=1&limitArrivals=4`
+Runs persistently on Hetzner through Tailscale Funnel. No laptop proxy or tunnel
+is required. Endpoints: `GET /mta/health`, `GET /mta/board?lat&lon&limitStations=1&limitArrivals=4`.
 
 ## Build
 
@@ -29,10 +28,10 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
 
 ## Settings (Connect Mobile → watch → NYC MTA)
 
-- Proxy URL requires HTTPS with a trusted certificate. The current default is a
-  temporary Cloudflare tunnel, available only while the tunnel and proxy run.
-  After restarting the tunnel, check tunnel.log and update the setting.
-  Plain LAN/Tailscale HTTP is rejected by simulator/device HTTPS policy.
+- Proxy URL defaults to `https://ubuntu-8gb-nbg1-1.tailca4726.ts.net` (without `/mta`).
+  The app appends the API path. The exact old bundled Cloudflare URL is migrated
+  and saved automatically; other custom settings are preserved. Custom servers
+  require HTTPS with a trusted certificate. MTA upstream outages remain possible.
 
 ## Controls
 
