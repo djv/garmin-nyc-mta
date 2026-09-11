@@ -16,6 +16,7 @@ class GpsTracker {
     hidden var _noSignalPolls;
     hidden var _done;
     hidden var _generation = 0;
+    var usedCache = false;
 
     function initialize(notify as Lang.Method) {
         _timer = new Timer.Timer();
@@ -26,10 +27,28 @@ class GpsTracker {
     }
 
     function start() {
+        begin(true);
+    }
+
+    function startFresh() { begin(false); }
+
+    hidden function readInfo() {
+        try { return Position.getInfo(); } catch (ex) { return null; }
+    }
+
+    hidden function begin(allowCache) {
         stop();
+        usedCache = false;
         _done = false;
         _noSignalPolls = 0;
         _requestTime = Time.now();
+        var info = allowCache ? readInfo() : null;
+        if (isRecentLastKnown(info)) {
+            usedCache = true;
+            var degrees = info.position.toDegrees();
+            finish(degrees[0].toDouble(), degrees[1].toDouble(), ageOf(info));
+            return;
+        }
         enableLocation();
         if (!_done) {
             var poll = new GpsRequest(self, _generation);

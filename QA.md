@@ -1,3 +1,33 @@
+# Station route badges — 2026-09-11
+
+- Production build succeeds; nine simulator tests pass, zero failures/errors.
+- Nearby and recent lists retain selection IDs and distance/selection subtitles.
+  Route tests cover duplicates, missing/invalid routes, and 12-line lists.
+- Temporary simulator fixture verifies eight Union Square badges wrapping to a
+  second row, a single-line station, and 6X/7X/FX diamonds with MTA colors.
+  Fixture is excluded from production; physical watch not installed.
+
+# Immediate cached GPS — 2026-09-11
+
+- Production build succeeds; eight simulator tests pass, zero failures/errors.
+- Cached watch fixes up to five minutes old notify immediately without enabling
+  GPS first. Expired/future/missing fixes use ordinary acquisition. Follow-up
+  acquisition bypasses the immediate cache path; hidden/selected views do not
+  start it. Tests use injected position data, not physical-watch measurements.
+- Cached-arrival requests and fresh GPS acquisition are serialized. Still-valid
+  coordinates survive a failed fresh acquisition. No phone-location integration.
+
+# Direction labels — 2026-09-11
+
+- FR965 production and test builds succeed. Seven simulator tests pass with
+  zero failures/errors (MonkeyDo still exits 1 after its explicit PASSED summary).
+- New tests cover shortened/deduplicated destinations, multiple terminals,
+  route/direction isolation, missing options, saved-label retention, legacy
+  recents enrichment without reordering, and unchanged glance filtering.
+- Temporary long-label fixture visually checked in the simulator: selection
+  text clips with an ellipsis, and arrival times remain visible. Fixture is not
+  included in production. No physical-watch installation performed.
+
 # Hetzner hosting verification — 2026-09-10 (America/New_York)
 
 Public base: `https://ubuntu-8gb-nbg1-1.tailca4726.ts.net`.

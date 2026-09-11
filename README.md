@@ -39,8 +39,11 @@ Tap: refresh location and arrivals. Automatic arrivals refresh every 60s;
 automatic-nearest mode checks GPS every 120s while visible. Explicit station
 selections remain fixed. Valid cached arrivals appear immediately on opening.
 GPS fixes must have valid coordinates and be between zero and five minutes old;
-reused fixes are marked Saved GPS, independently of arrival age. No usable GPS
-means no distances. With no cached station, Waiting for GPS offers tap to retry
+reused fixes are marked Saved GPS, independently of arrival age.
+A valid cached watch fix is used immediately, without waiting
+for GPS. After its arrival request completes, fresh GPS is acquired and arrivals
+are refreshed again; requests remain serialized. No phone location is used.
+No usable GPS means no distances. With no cached station, Waiting for GPS offers tap to retry
 or START for recent commutes. GPS wait is 9–15s; total request
 watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age.
 Arrival timestamps count down on repaint; passed predictions are hidden. Eight
@@ -67,7 +70,17 @@ Press START/select (or hold UP/menu) on the board to open Stations. Tapping
 the board still refreshes. Choose Nearby stations, a line, then one of its
 two GTFS travel directions. Destination names label the directions; short-turn
 trains in the same direction remain included. All lines shows the whole station.
+Board and recent-commute labels use destinations (for example, `L to Canarsie`)
+instead of N/S bound. The two direction choices use shortened, deduplicated
+terminal names. Labels are saved with recents and updated from fresh station
+options without changing recency. Without new predictions, saved labels remain;
+older entries without a label show `Direction N/S` until refreshed. Direction
+IDs and train filtering are unchanged.
 BACK cancels the picker and returns to the board.
+Nearby and recent station rows show all served routes as MTA-colored bullets,
+including diamond variants. Badges wrap after seven routes; station names and
+distance/selection details remain above them. Routes describe station service,
+not a guarantee that each line currently has predictions.
 
 Selections are automatically kept as the 10 most recently used station/line/
 direction combinations. Reuse moves an entry to the newest position; an 11th

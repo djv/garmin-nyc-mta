@@ -10,6 +10,7 @@ class BoardView extends WatchUi.View {
     static const LOCATION_MS = 120000;
     hidden var _nextLocation = 0;
     hidden var _requestSelection = null;
+    hidden var _freshGpsPending = false;
 
     hidden var _tracker;
     hidden var _redrawTimer;
@@ -73,6 +74,7 @@ class BoardView extends WatchUi.View {
     }
 
     function onHide() {
+        _freshGpsPending = false;
         _visible = false;
         _requestGen += 1;
         _fetching = false;
@@ -93,7 +95,7 @@ class BoardView extends WatchUi.View {
             var age = BoardStore.ageSeconds(BoardStore.load());
             meta = tag + (age != null ? " | " + MtaFormat.ageText(age) : "");
             if (selection != null && selection["route"] != null) {
-                meta = selection["route"] + " / " + (selection["dir"] != null ? selection["dir"] + " bound" : "All directions") + " | " + meta;
+                meta = DirectionLabels.selection(selection) + " | " + meta;
             }
         }
         MtaBoardRenderer.draw(dc, _boardName != null ? _boardName : _statusTitle,
@@ -107,6 +109,7 @@ class BoardView extends WatchUi.View {
             return;
         }
         _fetching = true;
+        _freshGpsPending = false;
         _requestGen += 1;
         _refreshError = null;
         _requestDeadline = System.getTimer() + 25000;
@@ -124,11 +127,17 @@ class BoardView extends WatchUi.View {
     function onFix(lat, lon, staleAge) {
         if (!_visible || !_fetching) { return; }
         if (!Config.coordinates(lat, lon) || (staleAge != null && !Config.fixAge(staleAge))) {
-            clearLocation();
+            validateLocation();
+            if (locationLat != null) {
+                _requestSelection = null;
+                fetch(locationLat, locationLon, "Saved GPS", _requestGen);
+                return;
+            }
             fetchLastStation();
             return;
         }
         locationLat = lat;
+        _freshGpsPending = _tracker.usedCache;
         locationLon = lon;
         locationTime = System.getTimer() - (staleAge == null ? 0 : staleAge * 1000);
         _requestSelection = null;
@@ -180,9 +189,12 @@ class BoardView extends WatchUi.View {
         var parsed = parseBoard(code, data);
         if (parsed == null) {
             showFailure(_parseError);
+            refreshGpsAfterCache();
             return;
         }
         BoardStore.save(parsed[:raw]);
+        RecentCommutes.refreshLabels(parsed[:raw]);
+        if (selection != null) { DirectionLabels.update(selection, parsed[:raw]["options"]); }
         if (_requestSelection == null) {
             nearby = [];
             for (var i = 0; i < data["stations"].size(); i += 1) {
@@ -192,6 +204,16 @@ class BoardView extends WatchUi.View {
         }
         _partial = parsed[:raw]["partial"] == true;
         render(parsed[:name], _staleTag, parsed[:arrivals]);
+        refreshGpsAfterCache();
+    }
+
+    function refreshGpsAfterCache() {
+        if (!_freshGpsPending || !_visible || selection != null) { return; }
+        _freshGpsPending = false;
+        _fetching = true;
+        _requestGen += 1;
+        _requestDeadline = System.getTimer() + 25000;
+        _tracker.startFresh();
     }
 
     function onRequestTimeout() {

@@ -29,6 +29,18 @@ module RecentCommutes {
         Application.Storage.setValue("recentCommutesV1", remember(load(), value));
     }
 
+    // Refresh labels in place: network activity must never change recency.
+    function refreshLabels(board) {
+        var items = load();
+        var changed = false;
+        for (var i = 0; i < items.size(); i += 1) {
+            if (items[i]["station"]["id"].equals(board["station"]["id"])) {
+                if (DirectionLabels.update(items[i], board["options"])) { changed = true; }
+            }
+        }
+        if (changed) { Application.Storage.setValue("recentCommutesV1", items); }
+    }
+
     function remember(previous, value) {
         var result = [] as Lang.Array;
         result.add(value);
