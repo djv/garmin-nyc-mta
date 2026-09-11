@@ -1,7 +1,7 @@
 # NYC MTA (Garmin fr965)
 
-MVP: nearby station with four arrivals. Current demo fallback is Union Square;
-Config.mc contains the coordinates (Lorimer is noted there).
+Nearby station with four arrivals. No default location: without usable GPS,
+the last cached station is refreshed by ID and marked “Last station.”
 
 UI: MTA-colored circular route bullets; explicit 6X/7X/FX route IDs draw diamonds
 with the base route label. Ordinary express routes are not automatically diamonds.
@@ -36,16 +36,20 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
 
 ## Controls
 
-Tap / Enter / Start: refresh location and arrivals. Automatic refresh every 60s
-reuses the location and keeps the board visible. Reopen or tap after moving.
-No GPS → recent fix or configured fallback. GPS wait is 9–15s; total request
+Tap: refresh location and arrivals. Automatic arrivals refresh every 60s;
+automatic-nearest mode checks GPS every 120s while visible. Explicit station
+selections remain fixed. Valid cached arrivals appear immediately on opening.
+GPS fixes must have valid coordinates and be between zero and five minutes old;
+reused fixes are marked Saved GPS, independently of arrival age. No usable GPS
+means no distances. With no cached station, Waiting for GPS offers tap to retry
+or START for recent commutes. GPS wait is 9–15s; total request
 watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age.
 Arrival timestamps count down on repaint; passed predictions are hidden. Eight
 predictions are cached to refill the four visible rows between refreshes.
 Partial data is marked when a station's feeds are unavailable.
 
-Glance refreshes the cached station on show if at least 120s old; it has no
-background network service.
+An empty glance shows Open app and makes no requests. A populated glance
+refreshes its cached station by ID without GPS.
 # Station picker and recent commutes
 
 The glance uses the most recently used saved selection matching its cached
@@ -72,7 +76,7 @@ unique selection evicts the least recently used. No favorites. The displayed
 list is distance-sorted when a location no more than five minutes old is
 available, otherwise most-recent-first. Distances are approximate straight-line
 distances to GTFS station points, not walking routes or entrance distances.
-No-GPS fallback coordinates never produce displayed personal distances.
+Station coordinates never serve as the user’s location.
 
 Automatic nearest clears the filter and reacquires location. A selected station
 stays selected during refresh; background refresh does not change recency.

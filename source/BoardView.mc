@@ -7,6 +7,9 @@ using Toybox.System;
 
 class BoardView extends WatchUi.View {
     static const REFRESH_MS = 60000;
+    static const LOCATION_MS = 120000;
+    hidden var _nextLocation = 0;
+    hidden var _requestSelection = null;
 
     hidden var _tracker;
     hidden var _redrawTimer;
@@ -19,8 +22,6 @@ class BoardView extends WatchUi.View {
     hidden var _boardArrivals;
     hidden var _parseError;
     hidden var _visible;
-    hidden var _lastLat;
-    hidden var _lastLon;
     hidden var _requestDeadline;
     hidden var _nextRefresh;
     hidden var _refreshError;
@@ -44,8 +45,6 @@ class BoardView extends WatchUi.View {
         _boardName = null;
         _boardArrivals = null;
         _visible = false;
-        _lastLat = null;
-        _lastLon = null;
         _refreshError = null;
         _partial = false;
         _requestDeadline = 0;
@@ -59,6 +58,14 @@ class BoardView extends WatchUi.View {
 
     function onShow() {
         _visible = true;
+        if (_boardName == null && selection == null) {
+            var cached = BoardStore.load();
+            if (cached != null) {
+                _staleTag = "Last station";
+                _partial = cached["board"]["partial"] == true;
+                render(cached["board"]["station"]["name"], _staleTag, cached["board"]["arrivals"]);
+            }
+        }
         refresh();
         _nextRefresh = System.getTimer() + REFRESH_MS;
         _redrawTimer.stop();
@@ -78,11 +85,11 @@ class BoardView extends WatchUi.View {
     function onUpdate(dc) {
         var meta = _statusMeta != null ? _statusMeta : "";
         if (_boardName != null) {
-            var tag = _staleTag != null ? "Saved GPS" : "Live";
+            var tag = _staleTag != null ? _staleTag : "Live";
             if (selection != null) { tag = "Selected"; }
-            if (_partial) { tag = "Partial data"; }
-            if (_refreshError != null) { tag = "Offline"; }
-            else if (_fetching) { tag = "Refreshing"; }
+            if (_partial) { tag += " / Partial"; }
+            if (_refreshError != null) { tag += " / Offline"; }
+            else if (_fetching) { tag += " / Updating"; }
             var age = BoardStore.ageSeconds(BoardStore.load());
             meta = tag + (age != null ? " | " + MtaFormat.ageText(age) : "");
             if (selection != null && selection["route"] != null) {
@@ -96,7 +103,7 @@ class BoardView extends WatchUi.View {
     // ---- public (delegate) ----
 
     function refresh() {
-        if (_fetching) {
+        if (!_visible || _fetching) {
             return;
         }
         _fetching = true;
@@ -104,35 +111,57 @@ class BoardView extends WatchUi.View {
         _refreshError = null;
         _requestDeadline = System.getTimer() + 25000;
         if (_boardName == null) {
-            showStatus("Locating...", "");
+            showStatus("Waiting for GPS", "START: recent commutes");
         }
+        _requestSelection = selection;
         if (selection != null) {
             fetch(selection["station"]["lat"], selection["station"]["lon"], "Selected", _requestGen);
-        } else { _tracker.start(); }
+        } else { _nextLocation = System.getTimer() + LOCATION_MS; _tracker.start(); }
     }
 
     // ---- fix handling ----
 
     function onFix(lat, lon, staleAge) {
         if (!_visible || !_fetching) { return; }
-        if (lat == null) {
-            locationLat = null;
-            locationLon = null;
-            fetch(Config.FALLBACK_LAT, Config.FALLBACK_LON, Config.FALLBACK_NOTE, _requestGen);
+        if (!Config.coordinates(lat, lon) || (staleAge != null && !Config.fixAge(staleAge))) {
+            clearLocation();
+            fetchLastStation();
             return;
         }
-        var stale = staleAge == null ? null : "STALE " + MtaFormat.ageText(staleAge);
         locationLat = lat;
         locationLon = lon;
         locationTime = System.getTimer() - (staleAge == null ? 0 : staleAge * 1000);
-        fetch(lat, lon, stale, _requestGen);
+        _requestSelection = null;
+        fetch(lat, lon, staleAge == null ? null : "Saved GPS", _requestGen);
+    }
+
+    function clearLocation() {
+        locationLat = null;
+        locationLon = null;
+        _staleTag = "Last station";
+    }
+
+    function validateLocation() {
+        var age = (System.getTimer() - locationTime) / 1000.0;
+        if (!Config.coordinates(locationLat, locationLon) || !Config.fixAge(age)) { clearLocation(); }
+    }
+
+    function fetchLastStation() {
+        var cached = BoardStore.load();
+        if (cached == null) {
+            _fetching = false;
+            showStatus("Waiting for GPS", "Tap retry / START recents");
+            return;
+        }
+        var station = cached["board"]["station"];
+        _requestSelection = {"station" => station, "route" => null, "dir" => null};
+        fetch(station["lat"], station["lon"], "Last station", _requestGen);
     }
 
     // ---- fetch ----
 
     function fetch(lat, lon, stale, gen) {
-        _lastLat = lat;
-        _lastLon = lon;
+        // Station coordinates are only API parameters, never a personal location.
         _staleTag = stale;
         if (_boardName == null) {
             showStatus("Loading trains...", stale == null ? "" : stale);
@@ -140,7 +169,7 @@ class BoardView extends WatchUi.View {
             WatchUi.requestUpdate();
         }
         var request = new BoardRequest(self, gen);
-        MtaClient.fetchSelection(lat, lon, selection, request.method(:onResponse));
+        MtaClient.fetchSelection(lat, lon, _requestSelection, request.method(:onResponse));
     }
 
     function onBoard(gen, code, data) {
@@ -154,7 +183,13 @@ class BoardView extends WatchUi.View {
             return;
         }
         BoardStore.save(parsed[:raw]);
-        if (selection == null) { nearby = data["stations"]; }
+        if (_requestSelection == null) {
+            nearby = [];
+            for (var i = 0; i < data["stations"].size(); i += 1) {
+                var item = data["stations"][i];
+                if (item instanceof Lang.Dictionary && Config.station(item["station"])) { nearby.add(item); }
+            }
+        }
         _partial = parsed[:raw]["partial"] == true;
         render(parsed[:name], _staleTag, parsed[:arrivals]);
     }
@@ -167,16 +202,16 @@ class BoardView extends WatchUi.View {
     }
 
     function openPicker() {
-        if (System.getTimer() - locationTime > 300000) { locationLat = null; locationLon = null; }
+        validateLocation();
         CommuteMenus.open(self);
     }
 
     function choose(value) {
+        if (value != null && !Config.station(value["station"])) { return; }
         selection = value;
         if (value != null) { RecentCommutes.use(value); }
         _boardName = null;
         _boardArrivals = null;
-        _lastLat = null;
         // Popping the picker invokes onShow, which starts the new request.
         WatchUi.popView(WatchUi.SLIDE_RIGHT);
     }
@@ -207,6 +242,7 @@ class BoardView extends WatchUi.View {
             return null;
         }
         var station = first["station"];
+        if (!Config.station(station)) { _parseError = "Bad station"; return null; }
         var name = "Unknown";
         if (station instanceof Lang.Dictionary) {
             name = MtaFormat.safeText(station["name"], "Unknown");
@@ -249,21 +285,27 @@ class BoardView extends WatchUi.View {
     }
 
     function onRefreshTick() {
-        if (_visible && !_fetching) {
-            if (_lastLat == null) { refresh(); return; }
-            _fetching = true;
-            _requestGen += 1;
-            _refreshError = null;
-            _requestDeadline = System.getTimer() + 25000;
-            fetch(_lastLat, _lastLon, _staleTag, _requestGen);
-        }
+        if (!_visible || _fetching) { return; }
+        validateLocation();
+        if (selection == null && System.getTimer() >= _nextLocation) { refresh(); return; }
+        _fetching = true;
+        _requestGen += 1;
+        _refreshError = null;
+        _requestDeadline = System.getTimer() + 25000;
+        _requestSelection = selection;
+        if (selection != null) {
+            fetch(selection["station"]["lat"], selection["station"]["lon"], "Selected", _requestGen);
+        } else if (locationLat != null) {
+            fetch(locationLat, locationLon, "Saved GPS", _requestGen);
+        } else { fetchLastStation(); }
     }
 
     function onRedrawTick() {
         if (!_visible) { return; }
         var now = System.getTimer();
         if (_fetching && now >= _requestDeadline) { onRequestTimeout(); }
-        if (now >= _nextRefresh) {
+        validateLocation();
+        if (!_fetching && (now >= _nextRefresh || (selection == null && now >= _nextLocation))) {
             _nextRefresh = now + REFRESH_MS;
             onRefreshTick();
         }

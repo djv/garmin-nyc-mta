@@ -3,11 +3,7 @@ using Toybox.Position;
 using Toybox.Time;
 using Toybox.Timer;
 
-// One-shot location fix with Lorimer-style fallback handling by the caller.
-//
-// notify is invoked exactly once as notify.invoke(lat, lon, staleAgeOrNull)
-// on a usable fix, or notify.invoke(null, null, null) when unresolvable
-// (caller falls back to a default location).
+// One-shot validated GPS acquisition; no station or default-location fallback.
 class GpsTracker {
     static const LAST_KNOWN_MAX_AGE_S = 300;
     static const TIMEOUT_S = 15;
@@ -19,6 +15,7 @@ class GpsTracker {
     hidden var _requestTime;
     hidden var _noSignalPolls;
     hidden var _done;
+    hidden var _generation = 0;
 
     function initialize(notify as Lang.Method) {
         _timer = new Timer.Timer();
@@ -34,17 +31,21 @@ class GpsTracker {
         _noSignalPolls = 0;
         _requestTime = Time.now();
         enableLocation();
-        _timer.start(method(:onPoll), POLL_MS, true);
+        if (!_done) {
+            var poll = new GpsRequest(self, _generation);
+            _timer.start(poll.method(:onPoll), POLL_MS, true);
+        }
     }
 
     function stop() {
+        _done = true;
+        _generation += 1;
         _timer.stop();
         disableLocation();
-        _done = true;
     }
 
-    function onPosition(info as Position.Info) as Void {
-        if (_done) {
+    function onPosition(generation, info) {
+        if (_done || generation != _generation) {
             return;
         }
         if (isFresh(info)) {
@@ -53,11 +54,8 @@ class GpsTracker {
         }
     }
 
-    function onPoll() {
-        if (_done) {
-            _timer.stop();
-            return;
-        }
+    function onPoll(generation) {
+        if (_done || generation != _generation) { return; }
         var info = null;
         try {
             info = Position.getInfo();
@@ -113,7 +111,8 @@ class GpsTracker {
     hidden function enableLocation() {
         try {
             Position.enableLocationEvents(Position.LOCATION_DISABLE, null);
-            Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
+            var request = new GpsRequest(self, _generation);
+            Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, request.method(:onPosition));
         } catch (ex) {
             finish(null, null, null);
         }
@@ -132,7 +131,7 @@ class GpsTracker {
         }
         if (info.accuracy == Position.QUALITY_NOT_AVAILABLE
                 || info.accuracy == Position.QUALITY_LAST_KNOWN
-                || _requestTime.compare(info.when) > 0) {
+                || _requestTime.compare(info.when) > 0 || !Config.fixAge(ageOf(info))) {
             return false;
         }
         return hasValidCoords(info.position.toDegrees());
@@ -142,18 +141,13 @@ class GpsTracker {
         if (!(degrees instanceof Array) || degrees.size() < 2) {
             return false;
         }
-        var lat = degrees[0].toDouble();
-        var lon = degrees[1].toDouble();
-        return lat >= -90.0 && lat <= 90.0 && lon >= -180.0 && lon <= 180.0
-            && (lat != 0.0 || lon != 0.0);
+        return Config.coordinates(degrees[0], degrees[1]);
     }
 
     hidden function isRecentLastKnown(info) {
-        if (info == null || info.position == null || info.when == null) {
-            return false;
-        }
-        return info.accuracy == Position.QUALITY_LAST_KNOWN
-            && ageOf(info) <= LAST_KNOWN_MAX_AGE_S;
+        return info != null && info.position != null && info.when != null &&
+            info.accuracy != null && info.accuracy != Position.QUALITY_NOT_AVAILABLE &&
+            Config.fixAge(ageOf(info)) && hasValidCoords(info.position.toDegrees());
     }
 
     hidden function hasNoSignal(info) {
@@ -164,4 +158,12 @@ class GpsTracker {
     hidden function ageOf(info) {
         return Time.now().value() - info.when.value();
     }
+}
+
+class GpsRequest {
+    var tracker;
+    var generation;
+    function initialize(t, g) { tracker = t; generation = g; }
+    function onPosition(info as Position.Info) as Void { tracker.onPosition(generation, info); }
+    function onPoll() { tracker.onPoll(generation); }
 }

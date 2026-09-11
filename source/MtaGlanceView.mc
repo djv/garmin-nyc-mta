@@ -60,23 +60,20 @@ class MtaGlanceView extends WatchUi.GlanceView {
         }
         var entry = BoardStore.load();
         var age = BoardStore.ageSeconds(entry);
+        if (entry == null) { return; }
         if (!_refreshing && now >= _retryAt && (_forceRefresh || age == null || age < 0 || (age as Lang.Number) >= REFRESH_MIN_S)) {
             // Glance has no GPS; use the last cached station.
             _refreshing = true;
             _forceRefresh = false;
             _generation += 1;
             _deadline = now + 15000;
-            var lat = Config.FALLBACK_LAT;
-            var lon = Config.FALLBACK_LON;
-            if (entry instanceof Lang.Dictionary && entry["board"] instanceof Lang.Dictionary) {
-                var station = entry["board"]["station"];
-                if (station instanceof Lang.Dictionary && station["lat"] != null && station["lon"] != null) {
-                    lat = station["lat"];
-                    lon = station["lon"];
-                }
-            }
+            var station = entry["board"]["station"];
+            var lat = station["lat"];
+            var lon = station["lon"];
+            var target = {"station" => station, "route" => _selection == null ? null : _selection["route"],
+                "dir" => _selection == null ? null : _selection["dir"]};
             var request = new GlanceRequest(self, _generation);
-            MtaClient.fetchSelection(lat, lon, _selection, request.method(:onResponse));
+            MtaClient.fetchSelection(lat, lon, target, request.method(:onResponse));
         }
     }
 
@@ -106,7 +103,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
             var stations = data["stations"];
             if (stations instanceof Array && stations.size() > 0 &&
                 stations[0] instanceof Lang.Dictionary &&
-                stations[0]["station"] instanceof Lang.Dictionary &&
+                Config.station(stations[0]["station"]) &&
                 stations[0]["arrivals"] instanceof Lang.Array) {
                 BoardStore.save(stations[0]);
                 _offline = false;

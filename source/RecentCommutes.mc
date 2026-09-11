@@ -6,7 +6,14 @@ module RecentCommutes {
     function load() {
         try {
             var items = Application.Storage.getValue("recentCommutesV1");
-            if (items instanceof Lang.Array) { return items; }
+            if (items instanceof Lang.Array) {
+                var valid = [];
+                for (var i = 0; i < items.size(); i += 1) {
+                    var item = items[i];
+                    if (item instanceof Lang.Dictionary && Config.station((item as Lang.Dictionary)["station"])) { valid.add(item); }
+                }
+                return valid;
+            }
         } catch (ex) {}
         return [];
     }

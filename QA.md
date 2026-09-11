@@ -1,3 +1,24 @@
+# Location reliability — 2026-09-10
+
+FR965 production build successful with SDK 9.1.0. Five simulator test functions
+pass (zero failures/errors): GPS age/quality/coordinate validation, location
+lifecycle, selection filtering, and recent-commute rules. The MonkeyDo test
+launcher exits 1 even when its printed test summary is PASSED.
+
+Deterministic simulator coverage includes first launch without cache/GPS,
+cache-first display, cached station ID fallback with no personal coordinates,
+future/expired fixes, GPS recovery and changed coordinates, one-minute arrivals
+and two-minute location scheduling, fixed selections, retained rows on timeout,
+expired distance suppression, hidden callbacks, and GPS callbacks from an earlier
+acquisition. Empty/invalid glance cache displays Open app; its request guard
+returns before creating a network request. Existing glance line/direction tests pass.
+Network calls in the location lifecycle tests are intercepted: these checks do
+not establish current proxy/tunnel availability or real-world GPS performance.
+No physical-watch installation was performed for this revision.
+
+The older observations below are historical; the configured location fallback
+and arrival-only automatic refresh described there have now been removed.
+
 # Verification — 2026-09-10
 
 Recent-selection glance update: simulator tests passed for most-recent matching

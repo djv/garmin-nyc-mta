@@ -17,14 +17,19 @@ module BoardStore {
 
     function load() {
         try {
-            return Application.Storage.getValue(KEY);
+            var stored = Application.Storage.getValue(KEY);
+            if (!(stored instanceof Lang.Dictionary)) { return null; }
+            var entry = stored as Lang.Dictionary;
+            if (entry instanceof Lang.Dictionary && entry["board"] instanceof Lang.Dictionary &&
+                Config.station(entry["board"]["station"]) && entry["board"]["arrivals"] instanceof Lang.Array) { return entry; }
+            return null;
         } catch (ex) {
             return null;
         }
     }
 
     function ageSeconds(entry) {
-        if (!(entry instanceof Lang.Dictionary) || entry["time"] == null) {
+        if (!(entry instanceof Lang.Dictionary) || !Config.numeric(entry["time"])) {
             return null;
         }
         return Time.now().value() - (entry["time"] as Lang.Number);
