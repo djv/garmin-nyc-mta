@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="0">
+    <iq:application
+        id="a3e9c1f4-7b2d-4e6a-9c5f-1d8e2b4a6001"
+        type="watch-app"
+        name="@Strings.AppName"
+        entry="NycMtaApp"
+        launcherIcon="@Drawables.LauncherIcon"
+        minSdkVersion="4.0.0">
+        <iq:products>
+            <iq:product id="fr965"/>
+        </iq:products>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:permissions>
+            <iq:uses-permission id="Positioning"/>
+            <iq:uses-permission id="Communications"/>
+        </iq:permissions>
+        <iq:barrels/>
+    </iq:application>
+</iq:manifest>

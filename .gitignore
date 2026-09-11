@@ -1,0 +1,7 @@
+build/
+*.debug.xml
+*.der
+*.pem
+.env
+.env.*
+*.log
