@@ -1,5 +1,10 @@
 # Verification — 2026-09-10
 
+UI polish: blue train launcher icon rendered from versioned SVG; simulator
+glance visually checked with smaller primary type and muted metadata. Live
+Lorimer board checked with four rows, full Canarsie labels, wider destination
+column, and START hint. Final FR965 build successful; not installed on watch.
+
 Glance refresh fix: FR965 production and test builds compile. Left the simulator
 glance visible without interaction and observed another automatic cache-age reset
 and updated countdown after the one-minute refresh interval. Simulator memory

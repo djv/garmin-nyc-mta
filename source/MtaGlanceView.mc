@@ -127,7 +127,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         arrs = upcoming as Lang.Array;
         if (arrs instanceof Array && arrs.size() > 0 && arrs[0] instanceof Lang.Dictionary) {
             _route = MtaFormat.safeText(arrs[0]["route"], "?");
-            _primary = MtaFormat.arrivalWhen(arrs[0]) + " " + MtaFormat.safeText(arrs[0]["dest"], "");
+            _primary = MtaFormat.arrivalWhen(arrs[0]) + " " + MtaFormat.shortDestination(arrs[0]["dest"]);
         } else {
             var age = BoardStore.ageSeconds(entry);
             _primary = _offline ? "Offline" : (_refreshing ? "Refreshing" :
@@ -148,7 +148,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         paintFromCache();
         var w = dc.getWidth();
         var h = dc.getHeight();
-        var f1 = Graphics.FONT_GLANCE_NUMBER;
+        var f1 = Graphics.FONT_GLANCE;
         var f2 = Graphics.FONT_GLANCE;
         var left = _route != null ? 54 : 10;
         var p = MtaFormat.clip(_primary, w - left - 10, dc, f1);
@@ -160,6 +160,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left, y + h1 / 2, f1, p,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(0xA8A8A8, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left, y + h1 + 4 + h2 / 2, f2, s,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }

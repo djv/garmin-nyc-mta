@@ -11,8 +11,11 @@ module CommuteMenus {
     }
 
     function show(view, mode, entry, route) {
-        var menu = new WatchUi.Menu2({:title => mode == :recent ?
-            (view.locationLat == null ? "Recent / latest first" : "Recent / nearest first") : "Choose " + mode.toString()});
+        var title = "Direction";
+        if (mode == :nearby) { title = "Nearby stations"; }
+        else if (mode == :line) { title = "Choose line"; }
+        else if (mode == :recent) { title = view.locationLat == null ? "Recent commutes" : "Recents / nearest"; }
+        var menu = new WatchUi.Menu2({:title => title});
         if (mode == :nearby) {
             for (var i = 0; i < view.nearby.size(); i += 1) {
                 var e = view.nearby[i];

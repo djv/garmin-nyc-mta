@@ -65,6 +65,16 @@ module MtaFormat {
         return route + " " + arrivalWhen(arrival) + " " + dest;
     }
 
+    // Compact terminal names for the small watch display; full names stay in menus.
+    function shortDestination(value) {
+        var text = safeText(value, "Unknown");
+        if (text.equals("Canarsie-Rockaway Pkwy")) { return "Canarsie"; }
+        if (text.equals("Forest Hills-71 Av")) { return "Forest Hills"; }
+        if (text.equals("Coney Island-Stillwell Av")) { return "Coney Island"; }
+        if (text.equals("Jamaica-179 St")) { return "Jamaica 179 St"; }
+        return text;
+    }
+
     function upcoming(arrival) {
         if (!(arrival instanceof Lang.Dictionary)) { return false; }
         var at = arrival["arrival_at"];
