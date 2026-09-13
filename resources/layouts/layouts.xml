@@ -1,0 +1,11 @@
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="http://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <layout id="MainLayout">
+        <label id="Title" text="" x="center" y="20%" font="Gfx.FONT_MEDIUM" justification="Gfx.TEXT_JUSTIFY_CENTER|Gfx.TEXT_JUSTIFY_VCENTER" color="Gfx.COLOR_WHITE" />
+        <label id="Meta" text="" x="center" y="32%" font="Gfx.FONT_XTINY" justification="Gfx.TEXT_JUSTIFY_CENTER|Gfx.TEXT_JUSTIFY_VCENTER" color="Gfx.COLOR_LT_GRAY" />
+        <label id="Arrival1" text="" x="center" y="46%" font="Gfx.FONT_SMALL" justification="Gfx.TEXT_JUSTIFY_CENTER|Gfx.TEXT_JUSTIFY_VCENTER" color="Gfx.COLOR_WHITE" />
+        <label id="Arrival2" text="" x="center" y="58%" font="Gfx.FONT_SMALL" justification="Gfx.TEXT_JUSTIFY_CENTER|Gfx.TEXT_JUSTIFY_VCENTER" color="Gfx.COLOR_WHITE" />
+        <label id="Arrival3" text="" x="center" y="70%" font="Gfx.FONT_SMALL" justification="Gfx.TEXT_JUSTIFY_CENTER|Gfx.TEXT_JUSTIFY_VCENTER" color="Gfx.COLOR_WHITE" />
+        <label id="Arrival4" text="" x="center" y="82%" font="Gfx.FONT_SMALL" justification="Gfx.TEXT_JUSTIFY_CENTER|Gfx.TEXT_JUSTIFY_VCENTER" color="Gfx.COLOR_WHITE" />
+    </layout>
+</resources>
