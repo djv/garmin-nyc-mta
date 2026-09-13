@@ -21,3 +21,27 @@ function stationCompassRules(logger) {
     Test.assert(StationCompass.direction(41.0, -74.0, north, 0.0) == null);
     return true;
 }
+
+(:test)
+function entranceRules(logger) {
+    var a = {"lat" => 40.001, "lon" => -74.0};
+    var b = {"lat" => 40.002, "lon" => -74.0};
+    var s = {"id" => "test", "name" => "Test", "lat" => 40.1, "lon" => -74.0, "entrances" => [null, {}, b, a]};
+    var t = StationCompass.target(40.0, -74.0, s);
+    Test.assert(t["point"] == a && t["meters"] > 110 && t["meters"] < 112);
+    Test.assert(StationCompass.target(40.003, -74.0, s)["point"] == b);
+    Test.assert(StationCompass.direction(40.0, -74.0, t["point"], null) == null);
+    Test.assert(t["meters"] != null);
+    Test.assert(StationCompass.target(null, -74.0, s) == null);
+    s["entrances"] = [];
+    Test.assert(StationCompass.target(40.0, -74.0, s)["meters"] == null);
+    s.remove("entrances");
+    BoardStore.save({"station" => s, "arrivals" => []});
+    var old = BoardStore.load();
+    Test.assert(old != null);
+    Test.assert(StationCompass.target(40.0, -74.0, old["board"]["station"])["meters"] == null);
+    s["entrances"] = [a,b];
+    BoardStore.save({"station" => s, "arrivals" => []});
+    Test.assert(BoardStore.load()["board"]["station"]["entrances"].size() == 2);
+    return true;
+}

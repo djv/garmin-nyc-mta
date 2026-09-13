@@ -2,6 +2,23 @@ using Toybox.Math;
 using Toybox.Lang;
 
 module StationCompass {
+    // Return a locally selected entrance and distance; old boards use station bearing.
+    function target(lat, lon, station) {
+        if (!Config.coordinates(lat, lon) || !(station instanceof Lang.Dictionary)) { return null; }
+        var points = station["entrances"];
+        var best = null;
+        var meters = null;
+        if (points instanceof Lang.Array) {
+            for (var i = 0; i < points.size(); i += 1) {
+                var p = points[i];
+                if (!(p instanceof Lang.Dictionary) || !Config.coordinates(p["lat"], p["lon"])) { continue; }
+                var d = RecentCommutes.distance({"station" => p}, lat, lon);
+                if (meters == null || d < meters) { best = p; meters = d; }
+            }
+        }
+        return {"point" => best == null ? station : best, "meters" => meters};
+    }
+
     function abs(v) { return v < 0 ? -v : v; }
     // Radians clockwise from the top of the display; null has no direction.
     function direction(lat, lon, station, heading) {

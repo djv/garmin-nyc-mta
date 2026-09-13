@@ -107,8 +107,9 @@ class BoardView extends WatchUi.View {
                 meta = DirectionLabels.selection(selection) + " | " + meta;
             }
         }
+        var target = stationTarget();
         MtaBoardRenderer.draw(dc, _boardName != null ? _boardName : _statusTitle,
-            meta, _boardArrivals, stationDirection());
+            meta, _boardArrivals, stationDirection(target), target == null ? null : target["meters"]);
     }
 
     function onCompass(info as Sensor.Info) as Void {
@@ -117,10 +118,14 @@ class BoardView extends WatchUi.View {
         _headingTime = System.getTimer();
     }
 
-    function stationDirection() {
-        if (_boardName == null || System.getTimer() - _headingTime > 3000 ||
-            !Config.fixAge((System.getTimer() - locationTime) / 1000.0)) { return null; }
-        return StationCompass.direction(locationLat, locationLon, _boardStation, _heading);
+    function stationTarget() {
+        if (_boardName == null || !Config.fixAge((System.getTimer() - locationTime) / 1000.0)) { return null; }
+        return StationCompass.target(locationLat, locationLon, _boardStation);
+    }
+
+    function stationDirection(target) {
+        if (target == null || System.getTimer() - _headingTime > 3000) { return null; }
+        return StationCompass.direction(locationLat, locationLon, target["point"], _heading);
     }
 
     // ---- public (delegate) ----

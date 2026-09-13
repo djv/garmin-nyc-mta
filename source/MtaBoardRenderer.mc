@@ -4,7 +4,7 @@ using Toybox.Math;
 
 // MTA-style route bullets, white destinations and a fixed arrival-time column.
 module MtaBoardRenderer {
-    function draw(dc, name, meta, arrivals, direction) {
+    function draw(dc, name, meta, arrivals, direction, entranceMeters) {
         var w = dc.getWidth();
         var h = dc.getHeight();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
@@ -50,6 +50,13 @@ module MtaBoardRenderer {
             dc.drawLine(ax+15*dx, ay+15*dy, ax+3.75*dx-8.75*dy, ay+3.75*dy+8.75*dx);
             dc.drawLine(ax+15*dx, ay+15*dy, ax+3.75*dx+8.75*dy, ay+3.75*dy-8.75*dx);
             dc.setPenWidth(1);
+        }
+        if (entranceMeters != null) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            var label = entranceMeters.format("%.0f") + " m";
+            var font = Graphics.FONT_XTINY;
+            dc.drawText(w/2+24, h*0.12, font, label,
+                Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
         if (row == 0 && arrivals != null) {
             dc.setColor(0xA8A8A8, Graphics.COLOR_TRANSPARENT);
