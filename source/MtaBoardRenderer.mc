@@ -40,15 +40,15 @@ module MtaBoardRenderer {
         }
         dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
         if (direction != null) {
-            var ax = w*0.73;
+            var ax = w/2;
             var ay = h*0.12;
             var dx = Math.sin(direction);
             var dy = -Math.cos(direction);
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(3);
-            dc.drawLine(ax-12*dx, ay-12*dy, ax+12*dx, ay+12*dy);
-            dc.drawLine(ax+12*dx, ay+12*dy, ax+3*dx-7*dy, ay+3*dy+7*dx);
-            dc.drawLine(ax+12*dx, ay+12*dy, ax+3*dx+7*dy, ay+3*dy-7*dx);
+            dc.drawLine(ax-15*dx, ay-15*dy, ax+15*dx, ay+15*dy);
+            dc.drawLine(ax+15*dx, ay+15*dy, ax+3.75*dx-8.75*dy, ay+3.75*dy+8.75*dx);
+            dc.drawLine(ax+15*dx, ay+15*dy, ax+3.75*dx+8.75*dy, ay+3.75*dy-8.75*dx);
             dc.setPenWidth(1);
         }
         if (row == 0 && arrivals != null) {
