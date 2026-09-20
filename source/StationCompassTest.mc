@@ -1,3 +1,4 @@
+using Toybox.Application;
 using Toybox.Test;
 using Toybox.Math;
 
@@ -36,12 +37,18 @@ function entranceRules(logger) {
     s["entrances"] = [];
     Test.assert(StationCompass.target(40.0, -74.0, s)["meters"] == null);
     s.remove("entrances");
-    BoardStore.save({"station" => s, "arrivals" => []});
-    var old = BoardStore.load();
-    Test.assert(old != null);
-    Test.assert(StationCompass.target(40.0, -74.0, old["board"]["station"])["meters"] == null);
-    s["entrances"] = [a,b];
-    BoardStore.save({"station" => s, "arrivals" => []});
-    Test.assert(BoardStore.load()["board"]["station"]["entrances"].size() == 2);
+    var previous = Application.Storage.getValue("board");
+    try {
+        BoardStore.save({"station" => s, "arrivals" => []});
+        var old = BoardStore.load();
+        Test.assert(old != null);
+        Test.assert(StationCompass.target(40.0, -74.0, old["board"]["station"])["meters"] == null);
+        s["entrances"] = [a,b];
+        BoardStore.save({"station" => s, "arrivals" => []});
+        Test.assert(BoardStore.load()["board"]["station"]["entrances"].size() == 2);
+    } finally {
+        if (previous == null) { Application.Storage.deleteValue("board"); }
+        else { Application.Storage.setValue("board", previous); }
+    }
     return true;
 }

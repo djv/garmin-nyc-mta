@@ -4,10 +4,41 @@
 
 User installed the entrance build on a physical FR965 and reports it works
 relatively well. This supersedes the "not installed on physical watch" notes in
-the 2026-09-13 sections below. Source currently defines 18 watch `(:test)`
-functions (earlier notes recorded 11); the proxy still has 31 deterministic
-tests, re-run and passing on 2026-09-20. The Garmin listing remains the
+the 2026-09-13 sections below. The watch test suite runs 11 tests, all passing
+(source has 18 `(:test)` annotations; seven mark helper/probe classes). The
+proxy still has 31 deterministic tests, re-run and passing after the entrance
+change. The Garmin listing remains the
 2026-09-13 version 0.3 upload; the entrance update is still not uploaded.
+
+## Distance units, Now label and simulator workflow — 2026-09-20
+
+Added a Distance setting (Walking time default, plus Meters/Feet/Miles) applied
+to the board entrance label and station-menu subtitles; predictions within 45
+seconds read "Now"; the entrance label is centered when no heading is available.
+New `MtaFormatTest.mc` covers unit formatting, walking-time rounding and the Now
+threshold. Watch suite: 13 tests, all passing (MonkeyDo reports PASSED; its
+process still exits 1). Production and signed export builds pass.
+
+Also fixed test hygiene: `StationCompassTest` saved a "Test" board without
+restoring it, which leaked into the simulator's persisted app storage and made
+subsequent app launches open that stale station. It now saves/restores the
+`board` key like `LocationTest`.
+
+Simulator workflow used on this laptop (no focus theft from the desktop):
+1. Run the SDK simulator on a nested display: `Xephyr :9 -screen 1280x1400 -ac`
+   then `DISPLAY=:9 ~/bin/garmin-simulator` (the wrapper adds the WebKit compat
+   libs). Screenshots come from `DISPLAY=:9 import -window root out.png`.
+2. Keep exactly one simulator running. If a stale instance holds TCP 1234 the
+   new one binds 1235 and `monkeydo` hangs silently waiting on 1234, so kill
+   simulators and wait for the port to free before starting.
+3. On the simulator's Simulation menu, uncheck "App Lock Enabled" (it defaults
+   on each boot); otherwise apps never come to the foreground.
+4. Build tests with `monkeyc -t ... -o build/Tests.prg` and run
+   `DISPLAY=:9 monkeydo build/Tests.prg fr965 -t`.
+5. On the watch face press START to bring the running app forward; the app's
+   board then shows. `File -> Reset All App Data` clears the app's persisted
+   storage when a stale board is cached (the simulator keeps it under
+   `/tmp/com.garmin.connectiq/GARMIN/APPS/DATA/`).
 
 ## Private beta invite — plan (pending, 2026-09-20)
 

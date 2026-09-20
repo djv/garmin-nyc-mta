@@ -1,4 +1,9 @@
 <resources>
     <string id="AppName">NYC MTA</string>
     <string id="ProxyTitle">Proxy URL</string>
+    <string id="DistanceTitle">Distance</string>
+    <string id="DistanceWalk">Walking time</string>
+    <string id="DistanceMeters">Meters</string>
+    <string id="DistanceFeet">Feet</string>
+    <string id="DistanceMiles">Miles</string>
 </resources>

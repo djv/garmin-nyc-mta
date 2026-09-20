@@ -32,6 +32,8 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
   The app appends the API path. The exact old bundled Cloudflare URL is migrated
   and saved automatically; other custom settings are preserved. Custom servers
   require HTTPS with a trusted certificate. MTA upstream outages remain possible.
+- Distance defaults to Walking time (`~3 min walk`, straight-line at ~5 km/h);
+  switch to Meters, Feet or Miles. Applies to the board label and station menus.
 
 ## Controls
 
@@ -46,7 +48,8 @@ are refreshed again; requests remain serialized. No phone location is used.
 No usable GPS means no distances. With no cached station, Waiting for GPS offers tap to retry
 or START for recent commutes. GPS wait is 9–15s; total request
 watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age.
-Arrival timestamps count down on repaint; passed predictions are hidden. Eight
+Arrival timestamps count down on repaint; passed predictions are hidden, and
+predictions within 45 seconds read Now. Eight
 predictions are cached to refill the four visible rows between refreshes.
 Partial data is marked when a station's feeds are unavailable.
 
@@ -58,7 +61,7 @@ The glance uses the most recently used saved selection matching its cached
 station, including that selection's line and direction on refresh. With no
 matching recent selection, it shows the next arrival across lines/directions.
 Glance refresh never changes recency. The board's top-center arrow points toward
-the nearest entry-allowed entrance of the displayed station, relative to the top of the watch face. The approximate straight-line distance appears beside it in whole meters. Selection uses distance only, independent of train direction. Entrance data does not establish live availability or access to the selected platform. If entrances are unavailable, the arrow targets the station point without a distance. Hold the watch level
+the nearest entry-allowed entrance of the displayed station, relative to the top of the watch face. The approximate straight-line distance appears beside it using the Distance setting (walking time by default); when no heading is available the label is centered without the arrow. Selection uses distance only, independent of train direction. Entrance data does not establish live availability or access to the selected platform. If entrances are unavailable, the arrow targets the station point without a distance. Hold the watch level
 to read it. Compass events run only while the board is visible. Missing heading
 (or no event for three seconds), missing/expired GPS, or coincident coordinates
 hide the arrow. Missing/expired GPS also hides the entrance distance; missing heading leaves the distance visible. This is a straight-line bearing, not walking directions.

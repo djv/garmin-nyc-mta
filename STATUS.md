@@ -1,6 +1,8 @@
 # Current status
 
-2026-09-20: Cleanup pass. User confirmed the entrance build is installed on a physical FR965 and works relatively well; FINDINGS now records this. All 31 proxy tests pass on re-run; source defines 18 watch `(:test)` functions (docs previously said 11; the simulator suite was not re-run). Production and signed export builds pass.
+2026-09-20: Distance setting added (Walking time default, plus Meters/Feet/Miles), "Now" for sub-minute arrivals, entrance label centered without heading, plus terminal-name polish and the test-pollution fix. Watch suite: 13 tests pass. Simulator workflow and pitfalls recorded in FINDINGS.md.
+
+2026-09-20: Cleanup pass. User confirmed the entrance build is installed on a physical FR965 and works relatively well; FINDINGS now records this. All 31 proxy tests pass on re-run; the watch suite runs 11 tests (18 `(:test)` annotations; seven on helpers), all passing. Production and signed export builds pass.
 
 Garmin listing remains the previously uploaded version 0.3; this entrance update is GitHub-synchronized but has not been uploaded to Garmin.
 

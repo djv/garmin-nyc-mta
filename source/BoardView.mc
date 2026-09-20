@@ -108,8 +108,9 @@ class BoardView extends WatchUi.View {
             }
         }
         var target = stationTarget();
+        var entranceLabel = target == null ? null : MtaFormat.distanceLabel(target["meters"], Config.distanceUnit());
         MtaBoardRenderer.draw(dc, _boardName != null ? _boardName : _statusTitle,
-            meta, _boardArrivals, stationDirection(target), target == null ? null : target["meters"]);
+            meta, _boardArrivals, stationDirection(target), entranceLabel);
     }
 
     function onCompass(info as Sensor.Info) as Void {

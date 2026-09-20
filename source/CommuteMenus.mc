@@ -20,8 +20,10 @@ module CommuteMenus {
             menu = StationMenu.create(title, view.nearby);
             for (var i = 0; i < view.nearby.size(); i += 1) {
                 var e = view.nearby[i];
+                var unit = Config.distanceUnit();
                 var distance = view.locationLat == null ? "GPS unavailable" :
-                    "~" + RecentCommutes.distance(e, view.locationLat, view.locationLon).format("%.0f") + " m direct";
+                    MtaFormat.distanceLabel(RecentCommutes.distance(e, view.locationLat, view.locationLon), unit) +
+                    (unit.equals("walk") ? "" : " direct");
                 menu.addItem(StationMenu.item(e["station"]["name"], distance, e, e["station"]));
             }
             if (view.nearby.size() == 0) { menu.addItem(StationMenu.item("Get location first", "Back, then tap to refresh", :empty, {})); }
@@ -31,7 +33,11 @@ module CommuteMenus {
             for (var i = 0; i < items.size(); i += 1) {
                 var value = items[i];
                 var label = DirectionLabels.selection(value);
-                if (view.locationLat != null) { label += " / ~" + RecentCommutes.distance(value, view.locationLat, view.locationLon).format("%.0f") + " m direct"; }
+                if (view.locationLat != null) {
+                    var unit = Config.distanceUnit();
+                    label += " / " + MtaFormat.distanceLabel(RecentCommutes.distance(value, view.locationLat, view.locationLon), unit) +
+                        (unit.equals("walk") ? "" : " direct");
+                }
                 menu.addItem(StationMenu.item(value["station"]["name"], label, value, value["station"]));
             }
             if (items.size() == 0) { menu.addItem(StationMenu.item("No recent commutes", "Choose a nearby station", :empty, {})); }
