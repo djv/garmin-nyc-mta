@@ -4,7 +4,7 @@
 
 2026-09-20: Controls polish: UP/DOWN cycle recent commutes, 30s refresh while a train is within five minutes, optional Train buzz setting. Watch suite: 15 tests pass. Physical buzz check still pending.
 
-2026-09-20: Service alerts implemented on the watch (Alert tag, Stations menu list, paged detail view, glance `!`) and in the proxy (`alerts.py`, per-station alerts + `alerts_available`). Proxy tests: 35 pass; watch suite: 14 pass. Detail view visually checked via a temporary fixture. The proxy change is not deployed (held), so the live app shows no alerts yet.
+2026-09-20: Service alerts implemented on the watch (Alert tag, Stations menu list, paged detail view, glance `!`) and in the proxy (`alerts.py`, per-station alerts + `alerts_available`). Watch suite: 16 tests pass. The proxy is now deployed (release `20260920T160447-5b6db79`) and the public L03 board serves 7 alerts, but the watch build with the alert UI is not yet uploaded to Garmin (listing remains 0.3).
 
 2026-09-20: Distance setting added (Walking time default, plus Meters/Feet/Miles), "Now" for sub-minute arrivals, entrance label centered without heading, plus terminal-name polish and the test-pollution fix. Watch suite: 13 tests pass. Simulator workflow and pitfalls recorded in FINDINGS.md.
 

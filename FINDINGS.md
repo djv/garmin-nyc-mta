@@ -47,9 +47,11 @@ maps alerts to a station by route and stop ID. The board attaches
 alerts failures never fail the board. 35 proxy tests pass (8 new). Verified
 against the live feed: 28 active alerts, Union Sq 7 hits, Lorimer St 1 hit.
 
-Deployment is intentionally held, so the live proxy does not serve alerts yet
-and the watch shows none until it is deployed. The detail view and paging were
-visually checked with a temporary fixture app outside the repository.
+Deployment happened after this watch work: the proxy was deployed on
+2026-09-20 (release `20260920T160447-5b6db79`), so the live board now returns
+`station.alerts`. The watch-side alert UI is committed here but the Garmin
+listing is still the older 0.3 upload, so only a sideloaded/updated watch build
+will show alerts.
 
 ## Distance units, Now label and simulator workflow — 2026-09-20
 
