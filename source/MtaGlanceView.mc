@@ -22,6 +22,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
     hidden var _offline = false;
     hidden var _selection = null;
     hidden var _forceRefresh = false;
+    hidden var _alert = false;
 
     function initialize() {
         GlanceView.initialize();
@@ -127,6 +128,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         var b = entry["board"] as Lang.Dictionary;
         var station = b["station"];
         _stationName = MtaFormat.safeText(station instanceof Lang.Dictionary ? station["name"] : null, "MTA");
+        _alert = Config.alerts(station instanceof Lang.Dictionary ? station : null).size() > 0;
         var arrs = b["arrivals"];
         var upcoming = [] as Lang.Array;
         if (arrs instanceof Array) {
@@ -150,7 +152,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
             return "Open app";
         }
         var age = BoardStore.ageSeconds(BoardStore.load());
-        return (_refreshing ? "Updating " : (_offline ? "Offline " : "")) +
+        return (_alert ? "! " : "") + (_refreshing ? "Updating " : (_offline ? "Offline " : "")) +
             (age != null ? MtaFormat.ageText(age) + " " : "") + _stationName;
     }
 

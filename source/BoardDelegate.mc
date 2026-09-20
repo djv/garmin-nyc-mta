@@ -22,4 +22,14 @@ class BoardDelegate extends WatchUi.BehaviorDelegate {
         _view.refresh();
         return true;
     }
+
+    function onNextPage() {
+        _view.cycleRecent(1);
+        return true;
+    }
+
+    function onPreviousPage() {
+        _view.cycleRecent(-1);
+        return true;
+    }
 }

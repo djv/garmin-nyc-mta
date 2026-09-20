@@ -7,7 +7,20 @@ module CommuteMenus {
         menu.addItem(new WatchUi.MenuItem("Nearby stations", null, :nearby, null));
         menu.addItem(new WatchUi.MenuItem("Recent commutes", "10 most recently used", :recent, null));
         menu.addItem(new WatchUi.MenuItem("Automatic nearest", "Clear station filter", :auto, null));
+        var alerts = view.alerts();
+        if (alerts.size() > 0) {
+            menu.addItem(new WatchUi.MenuItem("Service alerts", alerts.size().toString() + " active", :alerts, null));
+        }
         WatchUi.pushView(menu, new CommuteMenuDelegate(view, :root, null, null), WatchUi.SLIDE_LEFT);
+    }
+
+    function showAlerts(view) {
+        var alerts = view.alerts();
+        var menu = new WatchUi.Menu2({:title => "Service alerts"});
+        for (var i = 0; i < alerts.size(); i += 1) {
+            menu.addItem(new WatchUi.MenuItem(MtaFormat.safeText(alerts[i]["title"], "Alert"), null, i, null));
+        }
+        WatchUi.switchToView(menu, new AlertMenuDelegate(alerts), WatchUi.SLIDE_LEFT);
     }
 
     function show(view, mode, entry, route) {
@@ -20,8 +33,10 @@ module CommuteMenus {
             menu = StationMenu.create(title, view.nearby);
             for (var i = 0; i < view.nearby.size(); i += 1) {
                 var e = view.nearby[i];
+                var unit = Config.distanceUnit();
                 var distance = view.locationLat == null ? "GPS unavailable" :
-                    "~" + RecentCommutes.distance(e, view.locationLat, view.locationLon).format("%.0f") + " m direct";
+                    MtaFormat.distanceLabel(RecentCommutes.distance(e, view.locationLat, view.locationLon), unit) +
+                    (unit.equals("walk") ? "" : " direct");
                 menu.addItem(StationMenu.item(e["station"]["name"], distance, e, e["station"]));
             }
             if (view.nearby.size() == 0) { menu.addItem(StationMenu.item("Get location first", "Back, then tap to refresh", :empty, {})); }
@@ -31,7 +46,13 @@ module CommuteMenus {
             for (var i = 0; i < items.size(); i += 1) {
                 var value = items[i];
                 var label = DirectionLabels.selection(value);
-                if (view.locationLat != null) { label += " / ~" + RecentCommutes.distance(value, view.locationLat, view.locationLon).format("%.0f") + " m direct"; }
+                if (view.locationLat != null) {
+                    var unit = Config.distanceUnit();
+                    label += " / " + MtaFormat.distanceLabel(RecentCommutes.distance(value, view.locationLat, view.locationLon), unit) +
+                        (unit.equals("walk") ? "" : " direct");
+                }
+                var cached = BoardStore.forStation(value["station"]["id"]);
+                if (cached != null) { label += " / cached " + MtaFormat.ageText(BoardStore.ageSeconds(cached)); }
                 menu.addItem(StationMenu.item(value["station"]["name"], label, value, value["station"]));
             }
             if (items.size() == 0) { menu.addItem(StationMenu.item("No recent commutes", "Choose a nearby station", :empty, {})); }
@@ -66,6 +87,7 @@ class CommuteMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (id == :empty) { return; }
         if (mode == :root) {
             if (id == :auto) { view.choose(null); }
+            else if (id == :alerts) { CommuteMenus.showAlerts(view); }
             else { CommuteMenus.show(view, id, null, null); }
         } else if (mode == :nearby) { CommuteMenus.show(view, :line, id, null); }
         else if (mode == :recent) { view.choose(id); }

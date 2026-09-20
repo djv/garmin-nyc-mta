@@ -2,12 +2,16 @@ using Toybox.Graphics;
 using Toybox.Lang;
 using Toybox.PersistedContent;
 using Toybox.Timer;
+using Toybox.Time;
 using Toybox.WatchUi;
 using Toybox.System;
 using Toybox.Sensor;
+using Toybox.Attention;
 
 class BoardView extends WatchUi.View {
     static const REFRESH_MS = 60000;
+    static const FAST_REFRESH_MS = 30000;
+    static const SOON_S = 300;
     static const LOCATION_MS = 120000;
     hidden var _nextLocation = 0;
     hidden var _requestSelection = null;
@@ -15,6 +19,7 @@ class BoardView extends WatchUi.View {
     hidden var _heading = null;
     hidden var _headingTime = 0;
     hidden var _boardStation = null;
+    hidden var _buzzedKey = null;
 
     hidden var _tracker;
     hidden var _redrawTimer;
@@ -75,7 +80,7 @@ class BoardView extends WatchUi.View {
             }
         }
         refresh();
-        _nextRefresh = System.getTimer() + REFRESH_MS;
+        _nextRefresh = System.getTimer() + refreshDelay();
         _redrawTimer.stop();
         _redrawTimer.start(method(:onRedrawTick), 1000, true);
     }
@@ -99,6 +104,7 @@ class BoardView extends WatchUi.View {
             var tag = _staleTag != null ? _staleTag : "Live";
             if (selection != null) { tag = "Selected"; }
             if (_partial) { tag += " / Partial"; }
+            if (Config.alerts(_boardStation).size() > 0) { tag += " / Alert"; }
             if (_refreshError != null) { tag += " / Offline"; }
             else if (_fetching) { tag += " / Updating"; }
             var age = BoardStore.ageSeconds(BoardStore.load());
@@ -108,8 +114,9 @@ class BoardView extends WatchUi.View {
             }
         }
         var target = stationTarget();
+        var entranceLabel = target == null ? null : MtaFormat.distanceLabel(target["meters"], Config.distanceUnit());
         MtaBoardRenderer.draw(dc, _boardName != null ? _boardName : _statusTitle,
-            meta, _boardArrivals, stationDirection(target), target == null ? null : target["meters"]);
+            meta, _boardArrivals, stationDirection(target), entranceLabel);
     }
 
     function onCompass(info as Sensor.Info) as Void {
@@ -129,6 +136,38 @@ class BoardView extends WatchUi.View {
     }
 
     // ---- public (delegate) ----
+
+    function alerts() {
+        return Config.alerts(_boardStation);
+    }
+
+    // Apply a recent-commute selection without the menu stack (used by UP/DOWN).
+    function select(value) {
+        if (value == null || !Config.station(value["station"])) { return; }
+        selection = value;
+        RecentCommutes.use(value);
+        _boardName = null;
+        _boardArrivals = null;
+        _fetching = false;
+        _requestGen += 1;
+        refresh();
+        WatchUi.requestUpdate();
+    }
+
+    // Cycle recent commutes; with no current selection, +1 starts at the first.
+    function cycleRecent(delta) {
+        var items = RecentCommutes.sorted(locationLat, locationLon);
+        if (items.size() == 0) { return; }
+        var index = -1;
+        if (selection != null) {
+            for (var i = 0; i < items.size(); i += 1) {
+                if (RecentCommutes.same(items[i], selection)) { index = i; break; }
+            }
+        }
+        if (index < 0) { index = delta > 0 ? 0 : items.size() - 1; }
+        else { index = (index + delta + items.size()) % items.size(); }
+        select(items[index]);
+    }
 
     function refresh() {
         if (!_visible || _fetching) {
@@ -214,11 +253,16 @@ class BoardView extends WatchUi.View {
         _fetching = false;
         var parsed = parseBoard(code, data);
         if (parsed == null) {
+            if (restoreCached()) {
+                refreshGpsAfterCache();
+                return;
+            }
             showFailure(_parseError);
             refreshGpsAfterCache();
             return;
         }
         BoardStore.save(parsed[:raw]);
+        cacheStations(data["stations"]);
         RecentCommutes.refreshLabels(parsed[:raw]);
         if (selection != null) { DirectionLabels.update(selection, parsed[:raw]["options"]); }
         if (_requestSelection == null) {
@@ -234,8 +278,32 @@ class BoardView extends WatchUi.View {
         refreshGpsAfterCache();
     }
 
-    function refreshGpsAfterCache() {
-        if (!_freshGpsPending || !_visible || selection != null) { return; }
+    // Cache every station in a multi-station response for offline browsing.
+    function cacheStations(list) {
+        if (!(list instanceof Lang.Array)) { return; }
+        for (var i = 0; i < list.size(); i += 1) {
+            var item = list[i];
+            if (item instanceof Lang.Dictionary && Config.station(item["station"])) {
+                BoardStore.saveStation({"time" => Time.now().value(), "board" => item});
+            }
+        }
+    }
+
+    // On a failed fetch, show the cached board for the requested station.
+    function restoreCached() {
+        if (_requestSelection == null || !(_requestSelection["station"] instanceof Lang.Dictionary)) { return false; }
+        var entry = BoardStore.forStation((_requestSelection["station"] as Lang.Dictionary)["id"]);
+        if (!(entry instanceof Lang.Dictionary) || !(entry["board"] instanceof Lang.Dictionary)) { return false; }
+        var board = entry["board"] as Lang.Dictionary;
+        _boardStation = board["station"];
+        _staleTag = "Cached";
+        _partial = board["partial"] == true;
+        _refreshError = _parseError;
+        render((board["station"] as Lang.Dictionary)["name"], _staleTag, board["arrivals"]);
+        return true;
+    }
+
+    function refreshGpsAfterCache() {        if (!_freshGpsPending || !_visible || selection != null) { return; }
         _freshGpsPending = false;
         _fetching = true;
         _requestGen += 1;
@@ -354,11 +422,38 @@ class BoardView extends WatchUi.View {
         var now = System.getTimer();
         if (_fetching && now >= _requestDeadline) { onRequestTimeout(); }
         validateLocation();
+        maybeBuzz();
         if (!_fetching && (now >= _nextRefresh || (selection == null && now >= _nextLocation))) {
-            _nextRefresh = now + REFRESH_MS;
+            _nextRefresh = now + refreshDelay();
             onRefreshTick();
         }
         WatchUi.requestUpdate();
+    }
+
+    // Refresh sooner while a train is close.
+    function refreshDelay() {
+        var entry = BoardStore.load();
+        if (entry != null && entry["board"] instanceof Lang.Dictionary) {
+            var soonest = MtaFormat.soonestSeconds(entry["board"]["arrivals"], Time.now().value());
+            if (soonest != null && (soonest as Lang.Number) <= SOON_S) { return FAST_REFRESH_MS; }
+        }
+        return REFRESH_MS;
+    }
+
+    // One buzz per imminent train when the Train buzz setting is on.
+    function maybeBuzz() {
+        var lead = Config.vibrateLead();
+        if (lead <= 0) { return; }
+        var entry = BoardStore.load();
+        if (entry == null || !(entry["board"] instanceof Lang.Dictionary)) { return; }
+        var now = Time.now().value();
+        var next = MtaFormat.nextArrival(entry["board"]["arrivals"], now);
+        if (next == null) { return; }
+        var key = MtaFormat.safeText(next["route"], "?") + "@" + (next["arrival_at"] as Lang.Number).toString();
+        if (key.equals(_buzzedKey)) { return; }
+        if ((next["arrival_at"] as Lang.Number) - now > lead) { return; }
+        _buzzedKey = key;
+        try { Attention.vibrate([new Attention.VibeProfile(60, 250)]); } catch (ex) {}
     }
 }
 

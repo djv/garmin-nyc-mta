@@ -32,11 +32,17 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
   The app appends the API path. The exact old bundled Cloudflare URL is migrated
   and saved automatically; other custom settings are preserved. Custom servers
   require HTTPS with a trusted certificate. MTA upstream outages remain possible.
+- Distance defaults to Walking time (`~3 min walk`, straight-line at ~5 km/h);
+  switch to Meters, Feet or Miles. Applies to the board label and station menus.
+- Train buzz is Off by default; 2 or 5 minutes before the next cached arrival
+  the watch vibrates once. It only fires while the board is visible.
 
 ## Controls
 
-Tap: refresh location and arrivals. Automatic arrivals refresh every 60s;
-automatic-nearest mode checks GPS every 120s while visible. Explicit station
+Tap: refresh location and arrivals. UP/DOWN cycle through saved recent commutes
+(the first press with no selection picks the nearest/newest); START opens
+Stations. Automatic arrivals refresh every 60s, or every 30s while a train is
+within five minutes; automatic-nearest mode checks GPS every 120s while visible. Explicit station
 selections remain fixed. Valid cached arrivals appear immediately on opening.
 GPS fixes must have valid coordinates and be between zero and five minutes old;
 reused fixes are marked Saved GPS, independently of arrival age.
@@ -45,8 +51,12 @@ for GPS. After its arrival request completes, fresh GPS is acquired and arrivals
 are refreshed again; requests remain serialized. No phone location is used.
 No usable GPS means no distances. With no cached station, Waiting for GPS offers tap to retry
 or START for recent commutes. GPS wait is 9–15s; total request
-watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age.
-Arrival timestamps count down on repaint; passed predictions are hidden. Eight
+watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age,
+or, when selecting another station, show that station's cached board marked
+Cached. The five nearby stations from each automatic query are cached separately
+(up to eight stations) so they can be browsed underground.
+Arrival timestamps count down on repaint; passed predictions are hidden, and
+predictions within 45 seconds read Now. Eight
 predictions are cached to refill the four visible rows between refreshes.
 Partial data is marked when a station's feeds are unavailable.
 
@@ -58,7 +68,7 @@ The glance uses the most recently used saved selection matching its cached
 station, including that selection's line and direction on refresh. With no
 matching recent selection, it shows the next arrival across lines/directions.
 Glance refresh never changes recency. The board's top-center arrow points toward
-the nearest entry-allowed entrance of the displayed station, relative to the top of the watch face. The approximate straight-line distance appears beside it in whole meters. Selection uses distance only, independent of train direction. Entrance data does not establish live availability or access to the selected platform. If entrances are unavailable, the arrow targets the station point without a distance. Hold the watch level
+the nearest entry-allowed entrance of the displayed station, relative to the top of the watch face. The approximate straight-line distance appears beside it using the Distance setting (walking time by default); when no heading is available the label is centered without the arrow. Selection uses distance only, independent of train direction. Entrance data does not establish live availability or access to the selected platform. If entrances are unavailable, the arrow targets the station point without a distance. Hold the watch level
 to read it. Compass events run only while the board is visible. Missing heading
 (or no event for three seconds), missing/expired GPS, or coincident coordinates
 hide the arrow. Missing/expired GPS also hides the entrance distance; missing heading leaves the distance visible. This is a straight-line bearing, not walking directions.
@@ -80,6 +90,11 @@ options without changing recency. Without new predictions, saved labels remain;
 older entries without a label show `Direction N/S` until refreshed. Direction
 IDs and train filtering are unchanged.
 BACK cancels the picker and returns to the board.
+When the proxy reports active service alerts for the displayed station's lines,
+the board meta adds `/ Alert`, the glance prefix shows `!`, and the Stations menu
+gains `Service alerts (N)`. Each alert opens a scrollable detail view (tap or
+DOWN for the next page, UP for the previous). Alert text is supplied by the MTA
+feed; the proxy strips markup and clips nothing on the watch, so long alerts page.
 Nearby and recent station rows show all served routes as MTA-colored bullets,
 including diamond variants. Badges wrap after seven routes; station names and
 distance/selection details remain above them. Routes describe station service,
@@ -89,7 +104,8 @@ Selections are automatically kept as the 10 most recently used station/line/
 direction combinations. Reuse moves an entry to the newest position; an 11th
 unique selection evicts the least recently used. No favorites. The displayed
 list is distance-sorted when a location no more than five minutes old is
-available, otherwise most-recent-first. Distances are approximate straight-line
+available, otherwise most-recent-first. Entries with a cached board show
+`cached <age>`. Distances are approximate straight-line
 distances to GTFS station points, not walking routes or entrance distances.
 Station coordinates never serve as the user’s location.
 
