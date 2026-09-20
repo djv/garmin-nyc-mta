@@ -31,3 +31,20 @@ function arrivalWhenRules(logger) {
     Test.assert(MtaFormat.arrivalWhen({"mins" => 0}).equals("Due"));
     return true;
 }
+
+(:test)
+function alertRules(logger) {
+    var station = {"id" => "L03", "name" => "Union", "alerts" => [
+        {"title" => "L delays", "desc" => "slow"},
+        {"title" => ""},
+        {"desc" => "no title"},
+        "bad"
+    ]};
+    var alerts = Config.alerts(station);
+    Test.assert(alerts.size() == 1 && alerts[0]["title"].equals("L delays"));
+    Test.assert(Config.alerts({"alerts" => "bad"}).size() == 0);
+    Test.assert(Config.alerts(null).size() == 0);
+    Test.assert(MtaFormat.words("  a  b c ").size() == 3);
+    Test.assert(MtaFormat.words("a b c")[1].equals("b"));
+    return true;
+}

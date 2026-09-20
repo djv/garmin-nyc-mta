@@ -10,6 +10,25 @@ proxy still has 31 deterministic tests, re-run and passing after the entrance
 change. The Garmin listing remains the
 2026-09-13 version 0.3 upload; the entrance update is still not uploaded.
 
+## Service alerts — 2026-09-20
+
+Board meta adds `/ Alert` when the cached station has alerts; the Stations menu
+gains `Service alerts (N)`; the glance prefixes `!`; each alert opens `AlertView`
+with word-wrapped text and UP/DOWN or tap paging (page counter shown). New
+`MtaFormat.wrap/words` are unit-tested (word splitting); `Config.alerts` filters
+malformed entries. Watch suite: 14 tests, all passing.
+
+Proxy side (repo `mta-proxy`): `alerts.py` parses the public
+`camsys/subway-alerts` GTFS-RT feed, filters active periods, strips markup and
+maps alerts to a station by route and stop ID. The board attaches
+`station.alerts = [{title, desc, routes}]` and returns `alerts_available`;
+alerts failures never fail the board. 35 proxy tests pass (8 new). Verified
+against the live feed: 28 active alerts, Union Sq 7 hits, Lorimer St 1 hit.
+
+Deployment is intentionally held, so the live proxy does not serve alerts yet
+and the watch shows none until it is deployed. The detail view and paging were
+visually checked with a temporary fixture app outside the repository.
+
 ## Distance units, Now label and simulator workflow — 2026-09-20
 
 Added a Distance setting (Walking time default, plus Meters/Feet/Miles) applied

@@ -19,6 +19,18 @@ module Config {
             s["name"].length() > 0 && coordinates(s["lat"], s["lon"]);
     }
     function fixAge(age) { return numeric(age) && age >= 0 && age <= 300; }
+    function alerts(station) {
+        var out = [] as Lang.Array;
+        if (!(station instanceof Lang.Dictionary) || !(station["alerts"] instanceof Lang.Array)) { return out; }
+        var values = station["alerts"];
+        for (var i = 0; i < values.size(); i += 1) {
+            var a = values[i];
+            if (a instanceof Lang.Dictionary && a["title"] instanceof Lang.String && a["title"].length() > 0) {
+                out.add(a);
+            }
+        }
+        return out;
+    }
     function distanceUnit() {
         var v = 0;
         try { v = Application.Properties.getValue("distanceUnit"); } catch (ex) { v = 0; }

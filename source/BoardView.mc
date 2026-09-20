@@ -99,6 +99,7 @@ class BoardView extends WatchUi.View {
             var tag = _staleTag != null ? _staleTag : "Live";
             if (selection != null) { tag = "Selected"; }
             if (_partial) { tag += " / Partial"; }
+            if (Config.alerts(_boardStation).size() > 0) { tag += " / Alert"; }
             if (_refreshError != null) { tag += " / Offline"; }
             else if (_fetching) { tag += " / Updating"; }
             var age = BoardStore.ageSeconds(BoardStore.load());
@@ -130,6 +131,10 @@ class BoardView extends WatchUi.View {
     }
 
     // ---- public (delegate) ----
+
+    function alerts() {
+        return Config.alerts(_boardStation);
+    }
 
     function refresh() {
         if (!_visible || _fetching) {

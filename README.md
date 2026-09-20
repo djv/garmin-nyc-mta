@@ -83,6 +83,11 @@ options without changing recency. Without new predictions, saved labels remain;
 older entries without a label show `Direction N/S` until refreshed. Direction
 IDs and train filtering are unchanged.
 BACK cancels the picker and returns to the board.
+When the proxy reports active service alerts for the displayed station's lines,
+the board meta adds `/ Alert`, the glance prefix shows `!`, and the Stations menu
+gains `Service alerts (N)`. Each alert opens a scrollable detail view (tap or
+DOWN for the next page, UP for the previous). Alert text is supplied by the MTA
+feed; the proxy strips markup and clips nothing on the watch, so long alerts page.
 Nearby and recent station rows show all served routes as MTA-colored bullets,
 including diamond variants. Badges wrap after seven routes; station names and
 distance/selection details remain above them. Routes describe station service,

@@ -7,7 +7,20 @@ module CommuteMenus {
         menu.addItem(new WatchUi.MenuItem("Nearby stations", null, :nearby, null));
         menu.addItem(new WatchUi.MenuItem("Recent commutes", "10 most recently used", :recent, null));
         menu.addItem(new WatchUi.MenuItem("Automatic nearest", "Clear station filter", :auto, null));
+        var alerts = view.alerts();
+        if (alerts.size() > 0) {
+            menu.addItem(new WatchUi.MenuItem("Service alerts", alerts.size().toString() + " active", :alerts, null));
+        }
         WatchUi.pushView(menu, new CommuteMenuDelegate(view, :root, null, null), WatchUi.SLIDE_LEFT);
+    }
+
+    function showAlerts(view) {
+        var alerts = view.alerts();
+        var menu = new WatchUi.Menu2({:title => "Service alerts"});
+        for (var i = 0; i < alerts.size(); i += 1) {
+            menu.addItem(new WatchUi.MenuItem(MtaFormat.safeText(alerts[i]["title"], "Alert"), null, i, null));
+        }
+        WatchUi.switchToView(menu, new AlertMenuDelegate(alerts), WatchUi.SLIDE_LEFT);
     }
 
     function show(view, mode, entry, route) {
@@ -72,6 +85,7 @@ class CommuteMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (id == :empty) { return; }
         if (mode == :root) {
             if (id == :auto) { view.choose(null); }
+            else if (id == :alerts) { CommuteMenus.showAlerts(view); }
             else { CommuteMenus.show(view, id, null, null); }
         } else if (mode == :nearby) { CommuteMenus.show(view, :line, id, null); }
         else if (mode == :recent) { view.choose(id); }

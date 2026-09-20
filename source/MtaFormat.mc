@@ -151,6 +151,38 @@ module MtaFormat {
         return v.toString();
     }
 
+    // Split on single spaces, dropping empty tokens (no String.split dependency).
+    function words(text) {
+        var result = [] as Lang.Array;
+        var value = safeText(text, "");
+        var start = 0;
+        for (var i = 0; i <= value.length(); i += 1) {
+            if (i == value.length() || value.substring(i, i + 1).equals(" ")) {
+                if (i > start) { result.add(value.substring(start, i)); }
+                start = i + 1;
+            }
+        }
+        return result;
+    }
+
+    // Greedy word wrap for the alert detail view; first word always placed.
+    function wrap(text, maxPx, dc, font) {
+        var lines = [] as Lang.Array;
+        var tokens = words(text);
+        var current = "";
+        for (var i = 0; i < tokens.size(); i += 1) {
+            var candidate = current.length() == 0 ? tokens[i] : current + " " + tokens[i];
+            if (current.length() == 0 || dc.getTextWidthInPixels(candidate, font) <= maxPx) {
+                current = candidate;
+            } else {
+                lines.add(current);
+                current = tokens[i];
+            }
+        }
+        if (current.length() > 0) { lines.add(current); }
+        return lines;
+    }
+
     function clip(text, maxPx, dc, font) {
         if (text == null) {
             return "";
