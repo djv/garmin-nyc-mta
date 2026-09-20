@@ -1,5 +1,7 @@
 # Current status
 
+2026-09-20: Offline multi-station cache: up to eight per-station boards, Cached fallback for the selected station, cached-age hints in recents. Watch suite: 16 tests pass.
+
 2026-09-20: Controls polish: UP/DOWN cycle recent commutes, 30s refresh while a train is within five minutes, optional Train buzz setting. Watch suite: 15 tests pass. Physical buzz check still pending.
 
 2026-09-20: Service alerts implemented on the watch (Alert tag, Stations menu list, paged detail view, glance `!`) and in the proxy (`alerts.py`, per-station alerts + `alerts_available`). Proxy tests: 35 pass; watch suite: 14 pass. Detail view visually checked via a temporary fixture. The proxy change is not deployed (held), so the live app shows no alerts yet.

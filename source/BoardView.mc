@@ -253,11 +253,16 @@ class BoardView extends WatchUi.View {
         _fetching = false;
         var parsed = parseBoard(code, data);
         if (parsed == null) {
+            if (restoreCached()) {
+                refreshGpsAfterCache();
+                return;
+            }
             showFailure(_parseError);
             refreshGpsAfterCache();
             return;
         }
         BoardStore.save(parsed[:raw]);
+        cacheStations(data["stations"]);
         RecentCommutes.refreshLabels(parsed[:raw]);
         if (selection != null) { DirectionLabels.update(selection, parsed[:raw]["options"]); }
         if (_requestSelection == null) {
@@ -273,8 +278,32 @@ class BoardView extends WatchUi.View {
         refreshGpsAfterCache();
     }
 
-    function refreshGpsAfterCache() {
-        if (!_freshGpsPending || !_visible || selection != null) { return; }
+    // Cache every station in a multi-station response for offline browsing.
+    function cacheStations(list) {
+        if (!(list instanceof Lang.Array)) { return; }
+        for (var i = 0; i < list.size(); i += 1) {
+            var item = list[i];
+            if (item instanceof Lang.Dictionary && Config.station(item["station"])) {
+                BoardStore.saveStation({"time" => Time.now().value(), "board" => item});
+            }
+        }
+    }
+
+    // On a failed fetch, show the cached board for the requested station.
+    function restoreCached() {
+        if (_requestSelection == null || !(_requestSelection["station"] instanceof Lang.Dictionary)) { return false; }
+        var entry = BoardStore.forStation((_requestSelection["station"] as Lang.Dictionary)["id"]);
+        if (!(entry instanceof Lang.Dictionary) || !(entry["board"] instanceof Lang.Dictionary)) { return false; }
+        var board = entry["board"] as Lang.Dictionary;
+        _boardStation = board["station"];
+        _staleTag = "Cached";
+        _partial = board["partial"] == true;
+        _refreshError = _parseError;
+        render((board["station"] as Lang.Dictionary)["name"], _staleTag, board["arrivals"]);
+        return true;
+    }
+
+    function refreshGpsAfterCache() {        if (!_freshGpsPending || !_visible || selection != null) { return; }
         _freshGpsPending = false;
         _fetching = true;
         _requestGen += 1;

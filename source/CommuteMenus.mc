@@ -51,6 +51,8 @@ module CommuteMenus {
                     label += " / " + MtaFormat.distanceLabel(RecentCommutes.distance(value, view.locationLat, view.locationLon), unit) +
                         (unit.equals("walk") ? "" : " direct");
                 }
+                var cached = BoardStore.forStation(value["station"]["id"]);
+                if (cached != null) { label += " / cached " + MtaFormat.ageText(BoardStore.ageSeconds(cached)); }
                 menu.addItem(StationMenu.item(value["station"]["name"], label, value, value["station"]));
             }
             if (items.size() == 0) { menu.addItem(StationMenu.item("No recent commutes", "Choose a nearby station", :empty, {})); }

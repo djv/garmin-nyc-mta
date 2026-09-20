@@ -51,7 +51,10 @@ for GPS. After its arrival request completes, fresh GPS is acquired and arrivals
 are refreshed again; requests remain serialized. No phone location is used.
 No usable GPS means no distances. With no cached station, Waiting for GPS offers tap to retry
 or START for recent commutes. GPS wait is 9–15s; total request
-watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age.
+watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age,
+or, when selecting another station, show that station's cached board marked
+Cached. The five nearby stations from each automatic query are cached separately
+(up to eight stations) so they can be browsed underground.
 Arrival timestamps count down on repaint; passed predictions are hidden, and
 predictions within 45 seconds read Now. Eight
 predictions are cached to refill the four visible rows between refreshes.
@@ -101,7 +104,8 @@ Selections are automatically kept as the 10 most recently used station/line/
 direction combinations. Reuse moves an entry to the newest position; an 11th
 unique selection evicts the least recently used. No favorites. The displayed
 list is distance-sorted when a location no more than five minutes old is
-available, otherwise most-recent-first. Distances are approximate straight-line
+available, otherwise most-recent-first. Entries with a cached board show
+`cached <age>`. Distances are approximate straight-line
 distances to GTFS station points, not walking routes or entrance distances.
 Station coordinates never serve as the user’s location.
 

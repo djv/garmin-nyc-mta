@@ -10,6 +10,16 @@ proxy still has 31 deterministic tests, re-run and passing after the entrance
 change. The Garmin listing remains the
 2026-09-13 version 0.3 upload; the entrance update is still not uploaded.
 
+## Offline multi-station cache — 2026-09-20
+
+`BoardStore` gained a `boards` key holding up to eight per-station entries,
+newest first, with the v1 `board` primary kept for the glance and used as a
+lazy-migration fallback. Every station in a multi-station response is cached, so
+switching to a recent station offline renders its cached board marked Cached
+instead of failing; recent-commute rows show `cached <age>`. New
+`BoardStoreTest.mc` covers ordering, cap, lookup and the migration fallback.
+Watch suite: 16 tests, all passing. Production build succeeds.
+
 ## Controls polish — 2026-09-20
 
 UP/DOWN now cycle saved recent commutes without opening the menu (new
