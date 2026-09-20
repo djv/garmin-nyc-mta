@@ -7,8 +7,23 @@ relatively well. This supersedes the "not installed on physical watch" notes in
 the 2026-09-13 sections below. The watch test suite runs 11 tests, all passing
 (source has 18 `(:test)` annotations; seven mark helper/probe classes). The
 proxy still has 31 deterministic tests, re-run and passing after the entrance
-change. The Garmin listing remains the
-2026-09-13 version 0.3 upload; the entrance update is still not uploaded.
+change. The Garmin listing is now version 0.4, published and
+installed on the physical FR965 (see the 2026-09-20 v0.4 upload section below).
+
+## Connect IQ upload — 2026-09-20 (v0.4)
+
+Signed `build/NycMta.iq` (33,385 bytes; listing size 43 KB), SHA-256
+`f38185863ddc8f1c4b4295e3d8cff05a15b330267b843a0489c41296e55857f3`, uploaded
+to the Garmin developer dashboard and read back as Version 0.4 (Internal: 4),
+status Pending, BETA. User confirms it is installed on the physical FR965.
+Published What's New (verbatim): "Adds MTA service alerts: an Alert tag on the
+board, a Service alerts list in the Stations menu with a scrollable detail
+view, and a glance indicator. Also adds a Distance setting (walking time by
+default, plus meters/feet/miles), Now for sub-minute arrivals, UP/DOWN to cycle
+recent commutes, a faster refresh when a train is close, an optional train
+buzz, and offline per-station boards." The published notes do not mention the
+entrance arrow / walking-time distance added after the 0.3 upload. Listing
+Latest Release still displays September 11, 2026 (known stale field).
 
 ## Offline multi-station cache — 2026-09-20
 
@@ -49,9 +64,8 @@ against the live feed: 28 active alerts, Union Sq 7 hits, Lorimer St 1 hit.
 
 Deployment happened after this watch work: the proxy was deployed on
 2026-09-20 (release `20260920T160447-5b6db79`), so the live board now returns
-`station.alerts`. The watch-side alert UI is committed here but the Garmin
-listing is still the older 0.3 upload, so only a sideloaded/updated watch build
-will show alerts.
+`station.alerts`. The watch-side alert UI shipped in the 0.4 upload
+(2026-09-20); see the v0.4 section above.
 
 ## Distance units, Now label and simulator workflow — 2026-09-20
 
