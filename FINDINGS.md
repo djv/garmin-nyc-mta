@@ -9,6 +9,28 @@ functions (earlier notes recorded 11); the proxy still has 31 deterministic
 tests, re-run and passing on 2026-09-20. The Garmin listing remains the
 2026-09-13 version 0.3 upload; the entrance update is still not uploaded.
 
+## Private beta invite — plan (pending, 2026-09-20)
+
+Goal: share the app with a friend on a different Garmin watch via the existing
+private beta listing, so they get a store install with the settings UI and
+updates (no USB). Blocked on the friend's exact watch model and Garmin account
+email.
+
+Steps once known:
+1. Confirm the watch runs Connect IQ 4.0+ (`minSdkVersion 4.0.0`); a CIQ 3.x
+   device needs the min SDK lowered and glance/compass behavior retested.
+2. Install that device profile in the Connect IQ SDK Manager (only fr965,
+   fenix7xpro and legacy devices are local today).
+3. Add `<iq:product id="..."/>` for the watch in `manifest.xml`.
+4. Build the signed package: `monkeyc -e -f monkey.jungle -o build/NycMta.iq -y
+   ~/.garmin/developer_key.der`; simulator smoke-test that screen shape.
+5. In the Garmin developer dashboard, upload as version 0.4 with the entrance
+   arrow/distance release notes, then add the friend's email as a beta tester.
+6. Friend installs from the store link via the Connect IQ app.
+
+No compass on their watch leaves distance visible without the arrow; no glance
+support just hides the glance.
+
 ## Heading arrow layout — 2026-09-13
 
 MtaBoardRenderer draws the arrow at w/2, h*0.12, with a 30-pixel shaft and proportionally enlarged arrowhead. Rotation and visibility behavior are unchanged. Agent-tested: FR965 production compilation and git diff --check pass. SDK display metadata confirms a 454 by 454 round screen; arrow geometry fits within the top region at all rotations. Simulator visual inspection passed for all eight compass directions and null-heading visibility using a temporary fixture outside the repository. All 10 simulator tests passed (0 failures/errors; MonkeyDo exits 1 despite PASSED). Contact sheet: /tmp/mta-arrow-sim-contact.png. Physical-watch installation was not performed at that time (see 2026-09-20 verification above). Rollback: restore the prior arrow coordinates and dimensions in source/MtaBoardRenderer.mc.

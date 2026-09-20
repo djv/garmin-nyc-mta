@@ -7,4 +7,4 @@ Garmin listing remains the previously uploaded version 0.3; this entrance update
 GitHub: app code at `076ea29`; this docs cleanup commit is pushed on top.
 
 Owner: none; no held resource locks.
-Next action: upload 0.4 and invite a friend as a private beta tester once their watch model and Garmin account email are known.
+Next action: upload 0.4 and invite a friend as a private beta tester once their watch model and Garmin account email are known; steps noted in FINDINGS.md.
