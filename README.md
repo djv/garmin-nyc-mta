@@ -34,11 +34,15 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
   require HTTPS with a trusted certificate. MTA upstream outages remain possible.
 - Distance defaults to Walking time (`~3 min walk`, straight-line at ~5 km/h);
   switch to Meters, Feet or Miles. Applies to the board label and station menus.
+- Train buzz is Off by default; 2 or 5 minutes before the next cached arrival
+  the watch vibrates once. It only fires while the board is visible.
 
 ## Controls
 
-Tap: refresh location and arrivals. Automatic arrivals refresh every 60s;
-automatic-nearest mode checks GPS every 120s while visible. Explicit station
+Tap: refresh location and arrivals. UP/DOWN cycle through saved recent commutes
+(the first press with no selection picks the nearest/newest); START opens
+Stations. Automatic arrivals refresh every 60s, or every 30s while a train is
+within five minutes; automatic-nearest mode checks GPS every 120s while visible. Explicit station
 selections remain fixed. Valid cached arrivals appear immediately on opening.
 GPS fixes must have valid coordinates and be between zero and five minutes old;
 reused fixes are marked Saved GPS, independently of arrival age.

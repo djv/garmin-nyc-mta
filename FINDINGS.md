@@ -10,6 +10,18 @@ proxy still has 31 deterministic tests, re-run and passing after the entrance
 change. The Garmin listing remains the
 2026-09-13 version 0.3 upload; the entrance update is still not uploaded.
 
+## Controls polish — 2026-09-20
+
+UP/DOWN now cycle saved recent commutes without opening the menu (new
+`BoardView.select` path that cancels an in-flight request; `cycleRecent` wraps
+and picks the first/last when nothing is selected). Automatic refresh drops to
+30s while the soonest cached arrival is within five minutes. An optional Train
+buzz setting (Off/2 min/5 min) vibrates once per imminent train, tracked by a
+route+arrival key so it does not repeat. `MtaFormat.soonestSeconds/nextArrival`
+and `Config.vibrateLead` are unit-tested. Watch suite: 15 tests, all passing.
+Buzz behavior on hardware is unverified (simulator vibration is not meaningful).
+Production build succeeds.
+
 ## Service alerts — 2026-09-20
 
 Board meta adds `/ Alert` when the cached station has alerts; the Stations menu

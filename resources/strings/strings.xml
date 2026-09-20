@@ -6,4 +6,8 @@
     <string id="DistanceMeters">Meters</string>
     <string id="DistanceFeet">Feet</string>
     <string id="DistanceMiles">Miles</string>
+    <string id="VibrateTitle">Train buzz</string>
+    <string id="VibrateOff">Off</string>
+    <string id="Vibrate2">2 min before</string>
+    <string id="Vibrate5">5 min before</string>
 </resources>

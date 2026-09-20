@@ -38,4 +38,10 @@ module Config {
         if (i < 0 || i >= DISTANCE_UNITS.size()) { i = 0; }
         return DISTANCE_UNITS[i];
     }
+    function vibrateLead() {
+        var v = 0;
+        try { v = Application.Properties.getValue("vibrateLead"); } catch (ex) { v = 0; }
+        var seconds = numeric(v) ? (v as Lang.Number).toNumber() : 0;
+        return (seconds == 120 || seconds == 300) ? seconds : 0;
+    }
 }

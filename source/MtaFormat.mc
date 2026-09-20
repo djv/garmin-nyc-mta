@@ -119,6 +119,33 @@ module MtaFormat {
         return !(at instanceof Lang.Number) || at >= Time.now().value();
     }
 
+    // Seconds until the soonest future arrival, or null when none.
+    function soonestSeconds(arrivals, now) {
+        if (!(arrivals instanceof Lang.Array)) { return null; }
+        var soonest = null;
+        for (var i = 0; i < arrivals.size(); i += 1) {
+            var a = arrivals[i];
+            if (!(a instanceof Lang.Dictionary) || !(a["arrival_at"] instanceof Lang.Number)) { continue; }
+            var seconds = (a["arrival_at"] as Lang.Number) - now;
+            if (seconds < 0) { continue; }
+            if (soonest == null || seconds < soonest) { soonest = seconds; }
+        }
+        return soonest;
+    }
+
+    // The soonest future arrival dictionary, or null.
+    function nextArrival(arrivals, now) {
+        if (!(arrivals instanceof Lang.Array)) { return null; }
+        var next = null;
+        for (var i = 0; i < arrivals.size(); i += 1) {
+            var a = arrivals[i];
+            if (!(a instanceof Lang.Dictionary) || !(a["arrival_at"] instanceof Lang.Number)) { continue; }
+            if ((a["arrival_at"] as Lang.Number) < now) { continue; }
+            if (next == null || (a["arrival_at"] as Lang.Number) < (next["arrival_at"] as Lang.Number)) { next = a; }
+        }
+        return next;
+    }
+
     function arrivalWhen(arrival) {
         var mins = arrival["mins"];
         var at = arrival["arrival_at"];

@@ -33,6 +33,25 @@ function arrivalWhenRules(logger) {
 }
 
 (:test)
+function controlRules(logger) {
+    var now = Time.now().value();
+    var arrivals = [
+        {"route" => "L", "arrival_at" => now + 600},
+        {"route" => "A", "arrival_at" => now + 120},
+        {"route" => "G", "arrival_at" => now - 30},
+        {"bad" => 1}
+    ];
+    Test.assert(MtaFormat.soonestSeconds(arrivals, now) == 120);
+    Test.assert(MtaFormat.soonestSeconds([], now) == null);
+    Test.assert(MtaFormat.soonestSeconds(null, now) == null);
+    Test.assert(MtaFormat.nextArrival(arrivals, now)["route"].equals("A"));
+    Test.assert(MtaFormat.nextArrival([{"route" => "G", "arrival_at" => now - 1}], now) == null);
+    var lead = Config.vibrateLead();
+    Test.assert(lead == 0 || lead == 120 || lead == 300);
+    return true;
+}
+
+(:test)
 function alertRules(logger) {
     var station = {"id" => "L03", "name" => "Union", "alerts" => [
         {"title" => "L delays", "desc" => "slow"},
