@@ -23,6 +23,20 @@ class MtaClient {
         return FALLBACK_BASE_URL;
     }
 
+    static function fetchPack(callback) {
+        var url = PackService.url();
+        if (url == null) { return false; }
+        try {
+            Communications.makeWebRequest(url, null, {
+                :timeout => 15,
+                :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+            }, callback);
+            return true;
+        } catch (ex) {
+            return false;
+        }
+    }
+
     static function fetchBoard(lat, lon, callback) {
         fetchSelection(lat, lon, null, callback);
     }

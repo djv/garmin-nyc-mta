@@ -32,10 +32,28 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
   The app appends the API path. The exact old bundled Cloudflare URL is migrated
   and saved automatically; other custom settings are preserved. Custom servers
   require HTTPS with a trusted certificate. MTA upstream outages remain possible.
-- Distance defaults to Walking time (`~3 min walk`, straight-line at ~5 km/h);
-  switch to Meters, Feet or Miles. Applies to the board label and station menus.
+- Distance defaults to Walking time (`~3 min walk`); the estimate walks the
+  straight-line distance at ~4.9 km/h and applies a 1.3x street-grid detour so
+  it is not optimistic in gridded Manhattan. Switch to Meters, Feet or Miles for
+  the raw straight-line distance. Applies to the board label and station menus.
 - Train buzz is Off by default; 2 or 5 minutes before the next cached arrival
   the watch vibrates once. It only fires while the board is visible.
+
+## Run pack (offline scheduled trains home)
+
+For run-one-way-then-ride-home runs without the phone. A route planner posts the destination station plus up to three bail-out stations
+to the proxy (`POST /mta/pack`) under a private key. Enter that key once in
+Connect Mobile → NYC MTA → **Run pack key**. The app then fetches `GET /mta/pack` on open
+(at most every 10 min) and a background service refreshes it every 15 min while the
+phone is connected. The pack holds up to 30 scheduled departures per station for the
+next 4 hours that reach a station near home (one-seat rides, planned work included),
+with minutes to the door, entrances and alert titles; it expires after 36 h.
+
+When a live request fails (no phone), the board shows the pack station matching the
+selection, else the one within 1.5 km of the fix, else the run's destination:
+`Sched home` in the header, rows as route bullet, `by 22:01` (door arrival) and a
+countdown. The glance shows the destination's next scheduled train when offline or
+when nothing else is cached. Scheduled times can be a few minutes off real trains.
 
 ## Controls
 
@@ -107,6 +125,8 @@ list is distance-sorted when a location no more than five minutes old is
 available, otherwise most-recent-first. Entries with a cached board show
 `cached <age>`. Distances are approximate straight-line
 distances to GTFS station points, not walking routes or entrance distances.
+Walking-time estimates apply the 1.3x grid detour to that straight-line
+distance; the Meters/Feet/Miles units stay raw straight-line.
 Station coordinates never serve as the user’s location.
 
 Automatic nearest clears the filter and reacquires location. A selected station

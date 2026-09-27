@@ -9,14 +9,23 @@ module BoardStore {
     const MAX_STATIONS = 8;
 
     function save(board) {
+        var entry = savePrimary(board);
+        if (entry != null) { saveStation(entry); }
+    }
+
+    // Only the last-station board. The glance uses this: loading the eight-station cache
+    // there exceeded its 64 KB limit (Out Of Memory in v0.4).
+    function savePrimary(board) {
         try {
             var entry = {
                 "time" => Time.now().value(),
                 "board" => board
             };
             Application.Storage.setValue(KEY, entry);
-            saveStation(entry);
-        } catch (ex) {}
+            return entry;
+        } catch (ex) {
+            return null;
+        }
     }
 
     // Keep a small per-station cache so other stations can be shown offline.

@@ -23,6 +23,12 @@ function boardStoreRules(logger) {
                 "lat" => 40.7, "lon" => -73.9}, "arrivals" => []});
         }
         Test.assert(BoardStore.loadAll().size() <= 8);
+        // The glance path writes only the primary board, never the station cache.
+        var before = BoardStore.loadAll().size();
+        BoardStore.savePrimary({"station" => {"id" => "G1", "name" => "Glance", "lat" => 40.7, "lon" => -73.9}, "arrivals" => []});
+        Test.assert(BoardStore.load()["board"]["station"]["id"].equals("G1"));
+        Test.assert(BoardStore.loadAll().size() == before && BoardStore.forStation("G1") == null);
+        BoardStore.save({"station" => {"id" => "S9", "name" => "St 9", "lat" => 40.7, "lon" => -73.9}, "arrivals" => []});
         Application.Storage.deleteValue("boards");
         Test.assert(BoardStore.loadAll().size() == 1);
         Test.assert(BoardStore.forStation("S9") != null);

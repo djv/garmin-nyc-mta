@@ -6,6 +6,11 @@ using Toybox.Time;
 (:glance)
 module MtaFormat {
     const WALK_MPS = 1.35;
+    // NYC's street grid forces right-angle detours and signal waits, so actual
+    // walking distance and time run above the straight-line estimate. 1.3 is
+    // the average grid detour (Manhattan/L1 over Euclidean is ~1.27) with a
+    // small allowance for crossings.
+    const GRID_DETOUR = 1.3;
     const FT_PER_M = 3.28084;
     const M_PER_MI = 1609.344;
 
@@ -76,7 +81,8 @@ module MtaFormat {
         if (text.equals("Canarsie-Rockaway Pkwy")) { return "Canarsie"; }
         if (text.equals("Forest Hills-71 Av")) { return "Forest Hills"; }
         if (text.equals("Coney Island-Stillwell Av")) { return "Coney Island"; }
-        if (text.equals("Jamaica-179 St")) { return "Jamaica 179 St"; }
+        if (text.equals("Jamaica-179 St")) { return "Jamaica"; }
+        if (text.equals("Bedford-Nostrand Avs")) { return "Bedford"; }
         if (text.equals("Flatbush Av-Brooklyn College")) { return "Flatbush Av"; }
         if (text.equals("Jamaica Center-Parsons/Archer")) { return "Parsons/Archer"; }
         if (text.equals("Middle Village-Metropolitan Av")) { return "Metropolitan Av"; }
@@ -103,7 +109,7 @@ module MtaFormat {
             return (m * FT_PER_M).format("%.0f") + " ft";
         }
         if (unit != null && unit.equals("miles")) { return (m / M_PER_MI).format("%.1f") + " mi"; }
-        var mins = Math.ceil(m / WALK_MPS / 60.0).toNumber();
+        var mins = Math.ceil(m * GRID_DETOUR / WALK_MPS / 60.0).toNumber();
         if (mins < 1) { mins = 1; }
         return mins.toString() + " min walk";
     }
