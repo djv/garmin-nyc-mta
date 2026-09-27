@@ -108,7 +108,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
                 stations[0] instanceof Lang.Dictionary &&
                 Config.station(stations[0]["station"]) &&
                 stations[0]["arrivals"] instanceof Lang.Array) {
-                BoardStore.save(stations[0]);
+                BoardStore.savePrimary(stations[0]);
                 _offline = false;
                 _forceRefresh = false;
             }

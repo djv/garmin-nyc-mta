@@ -26,6 +26,25 @@ proxy still has 31 deterministic tests, re-run and passing after the entrance
 change. The Garmin listing is now version 0.4, published and
 installed on the physical FR965 (see the 2026-09-20 v0.4 upload section below).
 
+## Glance Out Of Memory crash — 2026-09-27
+
+Watch log `GARMIN/Apps/LOGS/CIQ_LOG.BAK` (copied over MTP): two "Out Of Memory
+Error, Failed invoking <symbol>" entries, 2026-09-25 00:55 and 00:59 UTC,
+Store-Version 4. PCs 0x1000133b, 0x10001061, 0x100012b6, 0x100017bc, 0x10000f6d map
+(release build of `bd294a3`, `functionEntry` ranges in the debug XML) to
+GlanceSelection.newest, BoardStore.forStation, BoardStore.loadAll,
+MtaGlanceView.onUpdate and BoardStore.saveStation: glance code walking the
+per-station board cache. The glance heap is ~60 KB with ~21 KB used at rest
+(simulator status bar); a live 5-station board response near home is 1.2-2.1 KB
+JSON per station, so the 8-board cache is ~12.5 KB JSON and several times that
+as Monkey C objects, loaded alongside the fresh response. Fix: the glance
+stores only the primary board (`BoardStore.savePrimary`); the full app still
+maintains the cache. A simulator repro of the v0.4 build was attempted but the
+app hung on the launch screen; not reproduced. The installed-app version is
+in `GARMIN/GarminDevice.xml` (`<App>` entry, `<Version>` = internal number).
+`pgrep -f MonkeyDoDeux` inside a compound shell command matches the shell
+itself; kill simulator processes with `pgrep -x`.
+
 ## Connect IQ upload — 2026-09-27 (v0.6)
 
 Signed `build/NycMta.iq` (36 KB; listing 47 KB), SHA-256
