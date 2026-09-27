@@ -26,6 +26,18 @@ proxy still has 31 deterministic tests, re-run and passing after the entrance
 change. The Garmin listing is now version 0.4, published and
 installed on the physical FR965 (see the 2026-09-20 v0.4 upload section below).
 
+## Connect IQ upload — 2026-09-27 (v0.6)
+
+Signed `build/NycMta.iq` (36 KB; listing 47 KB), SHA-256
+`b235ccd3fa8779e3121d09426e996730d2b01251cd8ba157e6ab32f0d6587dea`, same
+dashboard workflow as v0.5. Garmin verified package and signature; listing
+reads Version 0.6 (Internal: 6). What's New (verbatim): "Run packs offline: the
+board now shows the pack station closest to you at any distance, with the
+direction arrow and walking time, plus scheduled trains home counting down in
+minutes." Simulator evidence before upload: offline at 40.660,-73.968 the board
+showed Parkside Av, arrow + ~13 min, Q rows 2m/14m/24m/42m. The Set Position
+dialog is under the simulator's Settings menu; relaunch the app after setting it.
+
 ## Connect IQ upload — 2026-09-26 (v0.5)
 
 Signed `build/NycMta.iq` (35 KB; listing size 46 KB), SHA-256

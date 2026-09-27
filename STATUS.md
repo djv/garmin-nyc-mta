@@ -1,6 +1,6 @@
 # Current status
 
-2026-09-26: Offline pack board now shows the pack station nearest the GPS fix at any distance (was: within 1.5 km, else the run's destination), with the entrance arrow and walking time; destination only without a fix. 17 tests pass; simulator at a Prospect Park fix showed Parkside Av, ~13 min, Q rows 2m/14m/24m/42m. Signed `build/NycMta.iq` SHA-256 `b235ccd3fa8779e3121d09426e996730d2b01251cd8ba157e6ab32f0d6587dea`, not uploaded (v0.6 needs the user's OK).
+2026-09-26: Offline pack board now shows the pack station nearest the GPS fix at any distance (was: within 1.5 km, else the run's destination), with the entrance arrow and walking time; destination only without a fix. 17 tests pass; simulator at a Prospect Park fix showed Parkside Av, ~13 min, Q rows 2m/14m/24m/42m. Signed `build/NycMta.iq` SHA-256 `b235ccd3fa8779e3121d09426e996730d2b01251cd8ba157e6ab32f0d6587dea` published 2026-09-27 as v0.6 (Internal 6, listing 47 KB); install on the watch not yet confirmed. Pack key is set in the Connect app; the watch fetched the pack (proxy log 2026-09-26 23:10).
 
 2026-09-26: Run pack for phone-free run-and-ride: `PackStore`/`PackService` (background temporal event every 15 min, `Background` permission), `packKey` setting, offline board fallback (`Sched home`, `by HH:MM` door time) and glance fallback. Watch suite: 17 tests pass (new `packStoreRules`; `locationLifecycle` now isolates the stored pack). Simulator: with BLE Not Connected the board showed the real 45 St pack counting down, and the glance showed the next scheduled R. Not verified: the background temporal event itself (simulator menu), on-watch behaviour. Signed `build/NycMta.iq` SHA-256 `6b1430625a3c82a89216a510e6f15473a0d2bbd90bccdc7a5cc42207a4a6f29e` published as v0.5 (Internal 5, listing 46 KB, Pending BETA); install on the watch not yet confirmed. Proxy side deployed (mta-proxy `61d8e8c`).
 
@@ -18,9 +18,9 @@
 
 2026-09-20: Cleanup pass. User confirmed the entrance build is installed on a physical FR965 and works relatively well; FINDINGS now records this. All 31 proxy tests pass on re-run; the watch suite runs 11 tests (18 `(:test)` annotations; seven on helpers), all passing. Production and signed export builds pass.
 
-The Garmin listing is version 0.5 (Internal 5), published 2026-09-26; v0.4 is the last build confirmed on the physical FR965.
+The Garmin listing is version 0.6 (Internal 6), published 2026-09-27; v0.4 is the last build confirmed on the physical FR965.
 
 GitHub: synchronized at `bd294a3` before this docs update.
 
 Owner: none; no held resource locks.
-Next action: user confirms v0.5 installed and enters the Run pack key in Connect app settings; check the board offline on a real run; then invite a friend as a private beta tester once their watch model and Garmin account email are known; steps noted in FINDINGS.md.
+Next action: user confirms v0.6 installed; check the board offline on a real run; then invite a friend as a private beta tester once their watch model and Garmin account email are known; steps noted in FINDINGS.md.
