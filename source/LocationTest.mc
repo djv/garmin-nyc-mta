@@ -76,7 +76,9 @@ class LocationBoardProbe extends BoardView {
 (:test)
 function locationLifecycle(logger) {
     var old = Application.Storage.getValue("board");
+    var oldPack = Application.Storage.getValue("pack");
     Application.Storage.deleteValue("board");
+    Application.Storage.deleteValue("pack");  // a stored run pack would replace "Waiting for GPS"
     try {
         var view = new LocationBoardProbe();
         view.run({"id" => "L10", "name" => "Lorimer", "lat" => 40.714, "lon" => -73.95});
@@ -89,6 +91,7 @@ function locationLifecycle(logger) {
     } finally {
         if (old == null) { Application.Storage.deleteValue("board"); }
         else { Application.Storage.setValue("board", old); }
+        if (oldPack != null) { Application.Storage.setValue("pack", oldPack); }
     }
     return true;
 }

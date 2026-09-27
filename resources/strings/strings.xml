@@ -10,4 +10,5 @@
     <string id="VibrateOff">Off</string>
     <string id="Vibrate2">2 min before</string>
     <string id="Vibrate5">5 min before</string>
+    <string id="PackKeyTitle">Run pack key</string>
 </resources>

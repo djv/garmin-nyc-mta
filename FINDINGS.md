@@ -1,5 +1,21 @@
 # Findings
 
+## Run pack — 2026-09-26
+
+Goal: show trains home mid-run without the phone (FR965 has no LTE; Connect IQ web
+requests only go through the phone). Pack format from the proxy: per station
+`d = [departure epoch, route index, minutes to the door, ...]`, ~3 KB for 4 stations,
+well under the 64 KB background memory limit; `PackService.onPack` retries
+`Background.exit` without entrances/alerts if the exit-data limit is hit.
+Simulator run (throwaway build with the key hard-coded, deleted afterwards): online
+open stored the pack; after Settings → Connection Type → BLE → Not Connected, tapping the glance opened
+the board as `45 St / Scheduled / Alert` with R rows counting down (labels were then
+shortened to `by 22:01` because `home 22:01` clipped). With no fix and no cached
+station the board previously stopped at "Waiting for GPS" without a request; it now
+falls back to the pack first. Simulator shares storage between the test app and
+sideloaded builds, so tests that expect "Waiting for GPS" must clear `pack`.
+The simulator cannot open app settings for monkeydo builds here ("No settings file").
+
 ## Physical-watch verification — 2026-09-20
 
 User installed the entrance build on a physical FR965 and reports it works

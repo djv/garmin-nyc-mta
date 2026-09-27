@@ -1,5 +1,7 @@
 # Current status
 
+2026-09-26: Run pack for phone-free run-and-ride: `PackStore`/`PackService` (background temporal event every 15 min, `Background` permission), `packKey` setting, offline board fallback (`Sched home`, `by HH:MM` door time) and glance fallback. Watch suite: 17 tests pass (new `packStoreRules`; `locationLifecycle` now isolates the stored pack). Simulator: with BLE Not Connected the board showed the real 45 St pack counting down, and the glance showed the next scheduled R. Not verified: the background temporal event itself (simulator menu), on-watch behaviour. Signed `build/NycMta.iq` SHA-256 `6b1430625a3c82a89216a510e6f15473a0d2bbd90bccdc7a5cc42207a4a6f29e`, not uploaded (v0.5 needs the user's OK). Proxy side deployed (mta-proxy `61d8e8c`).
+
 2026-09-20: Walking-time estimate de-optimized for the city grid: `MtaFormat` applies a 1.3x grid detour to the straight-line distance (Meters/Feet/Miles stay raw). `MtaFormatTest.distanceFormatRules` updated plus a 368 m case; distance assertions pass; production and test builds compile. Not yet in a published build.
 
 2026-09-20: v0.4 (Internal 4) published to the Garmin Connect IQ listing (status Pending) and installed on the physical FR965 (user-confirmed). Signed artifact `build/NycMta.iq`, SHA-256 `f38185863ddc8f1c4b4295e3d8cff05a15b330267b843a0489c41296e55857f3`, listing size 43 KB. What's New covers service alerts, the Distance setting, Now, UP/DOWN commutes, faster close-train refresh, optional train buzz, and offline per-station boards.
@@ -19,4 +21,4 @@ The Garmin listing is version 0.4 (Internal 4), published 2026-09-20 and install
 GitHub: synchronized at `bd294a3` before this docs update.
 
 Owner: none; no held resource locks.
-Next action: invite a friend as a private beta tester once their watch model and Garmin account email are known; steps noted in FINDINGS.md.
+Next action: with the user's OK, upload v0.5 (run pack) to the private beta listing and install; then invite a friend as a private beta tester once their watch model and Garmin account email are known; steps noted in FINDINGS.md.

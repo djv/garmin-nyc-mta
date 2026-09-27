@@ -39,6 +39,23 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
 - Train buzz is Off by default; 2 or 5 minutes before the next cached arrival
   the watch vibrates once. It only fires while the board is visible.
 
+## Run pack (offline scheduled trains home)
+
+For run-one-way-then-ride-home runs without the phone. `~/code/Browser/run-routes/run_route.py
+send` of a one-way route posts the destination station plus up to three bail-out stations
+to the proxy (`POST /mta/pack`) under a private key. Enter that key once in
+Connect Mobile → NYC MTA → **Run pack key**. The app then fetches `GET /mta/pack` on open
+(at most every 10 min) and a background service refreshes it every 15 min while the
+phone is connected. The pack holds up to 30 scheduled departures per station for the
+next 4 hours that reach a station near home (one-seat rides, planned work included),
+with minutes to the door, entrances and alert titles; it expires after 36 h.
+
+When a live request fails (no phone), the board shows the pack station matching the
+selection, else the one within 1.5 km of the fix, else the run's destination:
+`Sched home` in the header, rows as route bullet, `by 22:01` (door arrival) and a
+countdown. The glance shows the destination's next scheduled train when offline or
+when nothing else is cached. Scheduled times can be a few minutes off real trains.
+
 ## Controls
 
 Tap: refresh location and arrivals. UP/DOWN cycle through saved recent commutes

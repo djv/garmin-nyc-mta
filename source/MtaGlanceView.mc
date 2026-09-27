@@ -4,6 +4,7 @@ using Toybox.PersistedContent;
 using Toybox.Timer;
 using Toybox.WatchUi;
 using Toybox.System;
+using Toybox.Time;
 
 (:glance)
 class MtaGlanceView extends WatchUi.GlanceView {
@@ -23,6 +24,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
     hidden var _selection = null;
     hidden var _forceRefresh = false;
     hidden var _alert = false;
+    hidden var _scheduledGlance = false;
 
     function initialize() {
         GlanceView.initialize();
@@ -119,10 +121,12 @@ class MtaGlanceView extends WatchUi.GlanceView {
 
     function paintFromCache() {
         _route = null;
+        _scheduledGlance = false;
         var entry = BoardStore.load();
         if (!(entry instanceof Lang.Dictionary) || !(entry["board"] instanceof Lang.Dictionary)) {
             _primary = "MTA";
             _stationName = null;
+            paintFromPack();
             return;
         }
         var b = entry["board"] as Lang.Dictionary;
@@ -140,6 +144,8 @@ class MtaGlanceView extends WatchUi.GlanceView {
         if (arrs instanceof Array && arrs.size() > 0 && arrs[0] instanceof Lang.Dictionary) {
             _route = MtaFormat.safeText(arrs[0]["route"], "?");
             _primary = MtaFormat.arrivalWhen(arrs[0]) + " " + MtaFormat.shortDestination(arrs[0]["dest"]);
+        } else if (_offline && paintFromPack()) {
+            return;
         } else {
             var age = BoardStore.ageSeconds(entry);
             _primary = _offline ? "Offline" : (_refreshing ? "Refreshing" :
@@ -147,10 +153,26 @@ class MtaGlanceView extends WatchUi.GlanceView {
         }
     }
 
+    // Offline with a run pack: next scheduled train home from the run's destination.
+    function paintFromPack() {
+        var pack = PackStore.load();
+        var station = pack == null ? null : PackStore.destination(pack);
+        if (station == null) { return false; }
+        var rows = PackStore.board(station, Time.now().value())["arrivals"] as Lang.Array;
+        if (rows.size() == 0) { return false; }
+        _route = MtaFormat.safeText(rows[0]["route"], "?");
+        _primary = MtaFormat.arrivalWhen(rows[0]) + " " + rows[0]["dest"];
+        _stationName = "Sched " + MtaFormat.safeText(station["name"], "");
+        _alert = false;
+        _scheduledGlance = true;
+        return true;
+    }
+
     function secondaryText() {
         if (_stationName == null) {
             return "Open app";
         }
+        if (_scheduledGlance) { return _stationName; }
         var age = BoardStore.ageSeconds(BoardStore.load());
         return (_alert ? "! " : "") + (_refreshing ? "Updating " : (_offline ? "Offline " : "")) +
             (age != null ? MtaFormat.ageText(age) + " " : "") + _stationName;
