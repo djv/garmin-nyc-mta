@@ -38,6 +38,7 @@ function packStoreRules(logger) {
         Test.assert(PackStore.find(loaded, {"id" => "X99", "name" => "Nowhere"}) == null);
         Test.assert(PackStore.nearest(loaded, 40.6550, -73.9620, 1500)["id"].equals("D27"));
         Test.assert(PackStore.nearest(loaded, 40.7500, -73.9900, 1500) == null);
+        Test.assert(PackStore.nearest(loaded, 40.7500, -73.9900, null) != null);
 
         // Expired packs are ignored.
         pack["expires"] = now - 1;

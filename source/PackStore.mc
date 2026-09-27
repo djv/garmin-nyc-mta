@@ -72,7 +72,7 @@ module PackStore {
         return null;
     }
 
-    // Nearest pack station within maxMeters of the fix, or null.
+    // Nearest pack station to the fix (within maxMeters unless null), or null.
     function nearest(pack, lat, lon, maxMeters) {
         if (!Config.coordinates(lat, lon)) { return null; }
         var best = null;
@@ -80,7 +80,7 @@ module PackStore {
         var list = stations(pack);
         for (var i = 0; i < list.size(); i += 1) {
             var m = meters(lat, lon, list[i]["lat"], list[i]["lon"]);
-            if (m <= bestM) { best = list[i]; bestM = m; }
+            if (bestM == null || m <= bestM) { best = list[i]; bestM = m; }
         }
         return best;
     }

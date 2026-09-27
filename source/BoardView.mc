@@ -14,7 +14,6 @@ class BoardView extends WatchUi.View {
     static const SOON_S = 300;
     static const LOCATION_MS = 120000;
     static const PACK_REFRESH_S = 600;
-    static const PACK_NEAR_M = 1500;
     hidden var _scheduled = false;
     hidden var _nextLocation = 0;
     hidden var _requestSelection = null;
@@ -302,7 +301,7 @@ class BoardView extends WatchUi.View {
     }
 
     // Offline with a run pack: scheduled trains home from the requested station if it is in the
-    // pack, else the pack station nearest the fix, else the run's destination.
+    // pack, else the pack station nearest the fix (any distance), else the run's destination.
     function restorePack() {
         var pack = PackStore.load();
         if (pack == null) { return false; }
@@ -311,7 +310,7 @@ class BoardView extends WatchUi.View {
             station = PackStore.find(pack, _requestSelection["station"]);
         }
         if (station == null && Config.fixAge((System.getTimer() - locationTime) / 1000.0)) {
-            station = PackStore.nearest(pack, locationLat, locationLon, PACK_NEAR_M);
+            station = PackStore.nearest(pack, locationLat, locationLon, null);
         }
         if (station == null && (selection == null || _requestSelection == null)) {
             station = PackStore.destination(pack);
