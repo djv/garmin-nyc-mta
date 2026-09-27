@@ -26,6 +26,21 @@ proxy still has 31 deterministic tests, re-run and passing after the entrance
 change. The Garmin listing is now version 0.4, published and
 installed on the physical FR965 (see the 2026-09-20 v0.4 upload section below).
 
+## Connect IQ upload — 2026-09-26 (v0.5)
+
+Signed `build/NycMta.iq` (35 KB; listing size 46 KB), SHA-256
+`6b1430625a3c82a89216a510e6f15473a0d2bbd90bccdc7a5cc42207a4a6f29e`, uploaded
+via the developer dashboard in the user's Chrome (user signed in; Chrome file
+upload only accepts files under the session folder, so the .iq was copied to
+`~/code/Browser/tmp-upload/` and removed afterwards). Garmin verified package
+and signature; listing reads Version 0.5 (Internal: 5), BETA, App pending, and
+now lists the Background Activity permission. What's New (verbatim): "Adds run
+packs for running without your phone: set a Run pack key and the app downloads
+scheduled trains home in the background. With no phone connection, the board
+and glance count down those trains ("Sched home", "by H:MM" door time) at your
+destination or at stations along the route." Install on the FR965 not yet
+confirmed.
+
 ## Connect IQ upload — 2026-09-20 (v0.4)
 
 Signed `build/NycMta.iq` (33,385 bytes; listing size 43 KB), SHA-256
