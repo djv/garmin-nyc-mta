@@ -29,7 +29,7 @@ class LocationBoardProbe extends BoardView {
     function run(station) {
         _fetching = true;
         onFix(null, null, null);
-        Test.assert(calls == 0 && _statusTitle.equals("Waiting for GPS"));
+        Test.assert(calls == 0 && _statusTitle.equals("No GPS fix"));
         BoardStore.save({"station" => station, "arrivals" => []});
         onShow();
         Test.assert(_boardName.equals("Lorimer") && _boardArrivals != null);
@@ -78,7 +78,7 @@ function locationLifecycle(logger) {
     var old = Application.Storage.getValue("board");
     var oldPack = Application.Storage.getValue("pack");
     Application.Storage.deleteValue("board");
-    Application.Storage.deleteValue("pack");  // a stored run pack would replace "Waiting for GPS"
+    Application.Storage.deleteValue("pack");  // a stored run pack would replace "No GPS fix"
     try {
         var view = new LocationBoardProbe();
         view.run({"id" => "L10", "name" => "Lorimer", "lat" => 40.714, "lon" => -73.95});

@@ -22,6 +22,8 @@ class BoardView extends WatchUi.View {
     hidden var _headingTime = 0;
     hidden var _boardStation = null;
     hidden var _buzzedKey = null;
+    // Epoch of the shown board's data (fetch, cache or pack), for the "ago" hint.
+    hidden var _boardTime = null;
 
     hidden var _tracker;
     hidden var _redrawTimer;
@@ -78,6 +80,7 @@ class BoardView extends WatchUi.View {
                 _boardStation = cached["board"]["station"];
                 _staleTag = "Last station";
                 _partial = cached["board"]["partial"] == true;
+                _boardTime = cached["time"];
                 render(cached["board"]["station"]["name"], _staleTag, cached["board"]["arrivals"]);
             }
         }
@@ -104,9 +107,9 @@ class BoardView extends WatchUi.View {
     function onUpdate(dc) {
         var meta = _statusMeta != null ? _statusMeta : "";
         if (_boardName != null && _scheduled) {
-            var packAge = PackStore.ageSeconds();
+            // Timetable rows: the pack's age says nothing about them.
             meta = "Sched home" + (Config.alerts(_boardStation).size() > 0 ? " / Alert" : "") +
-                (_fetching ? " / Updating" : "") + (packAge != null ? " | " + MtaFormat.ageText(packAge) : "");
+                (_fetching ? " / Updating" : "");
         } else if (_boardName != null) {
             var tag = _staleTag != null ? _staleTag : "Live";
             if (selection != null) { tag = "Selected"; }
@@ -114,7 +117,7 @@ class BoardView extends WatchUi.View {
             if (Config.alerts(_boardStation).size() > 0) { tag += " / Alert"; }
             if (_refreshError != null) { tag += " / Offline"; }
             else if (_fetching) { tag += " / Updating"; }
-            var age = BoardStore.ageSeconds(BoardStore.load());
+            var age = boardAge();
             meta = tag + (age != null ? " | " + MtaFormat.ageText(age) : "");
             if (selection != null && selection["route"] != null) {
                 meta = DirectionLabels.selection(selection) + " | " + meta;
@@ -124,6 +127,12 @@ class BoardView extends WatchUi.View {
         var entranceLabel = target == null ? null : MtaFormat.distanceLabel(target["meters"], Config.distanceUnit());
         MtaBoardRenderer.draw(dc, _boardName != null ? _boardName : _statusTitle,
             meta, _boardArrivals, stationDirection(target), entranceLabel);
+    }
+
+    function boardAge() {
+        if (!Config.numeric(_boardTime)) { return null; }
+        var age = Time.now().value() - (_boardTime as Lang.Number);
+        return age < 0 ? 0 : age;
     }
 
     function onCompass(info as Sensor.Info) as Void {
@@ -234,7 +243,7 @@ class BoardView extends WatchUi.View {
             // No fix and no cached station (e.g. mid-run, phone at home): a run pack still helps.
             _requestSelection = null;
             if (restorePack()) { return; }
-            showStatus("Waiting for GPS", "Tap retry / START recents");
+            showStatus("No GPS fix", "Tap: retry");
             return;
         }
         var station = cached["board"]["station"];
@@ -272,6 +281,7 @@ class BoardView extends WatchUi.View {
             return;
         }
         _scheduled = false;
+        _boardTime = Time.now().value();
         BoardStore.save(parsed[:raw]);
         cacheStations(data["stations"]);
         RecentCommutes.refreshLabels(parsed[:raw]);
@@ -301,7 +311,8 @@ class BoardView extends WatchUi.View {
     }
 
     // Offline with a run pack: scheduled trains home from the requested station if it is in the
-    // pack, else the pack station nearest the fix (any distance), else the run's destination.
+    // pack, else the pack station nearest the fix or the watch's last known position (any
+    // distance), else the run's destination.
     function restorePack() {
         var pack = PackStore.load();
         if (pack == null) { return false; }
@@ -313,12 +324,17 @@ class BoardView extends WatchUi.View {
             station = PackStore.nearest(pack, locationLat, locationLon, null);
         }
         if (station == null && (selection == null || _requestSelection == null)) {
+            var fix = LastFix.recent();
+            if (fix != null) { station = PackStore.nearest(pack, fix[0], fix[1], null); }
+        }
+        if (station == null && (selection == null || _requestSelection == null)) {
             station = PackStore.destination(pack);
         }
         if (station == null) { return false; }
         var board = PackStore.board(station, Time.now().value());
         if ((board["arrivals"] as Lang.Array).size() == 0) { return false; }
         _scheduled = true;
+        _boardTime = null;
         _boardStation = board["station"];
         _staleTag = "Scheduled";
         _partial = false;
@@ -332,7 +348,12 @@ class BoardView extends WatchUi.View {
     function refreshPack() {
         var age = PackStore.ageSeconds();
         if (age != null && age >= 0 && age < PACK_REFRESH_S && PackStore.load() != null) { return; }
-        MtaClient.fetchPack(new PackRequest().method(:onResponse));
+        MtaClient.fetchPack(new PackRequest(self).method(:onResponse));
+    }
+
+    // A pack that arrives while only a status is shown (no fix, no cached station) fills the board.
+    function onPack() {
+        if (_visible && !_fetching && _boardName == null) { restorePack(); }
     }
 
     // On a failed fetch, show the cached board for the requested station.
@@ -343,6 +364,7 @@ class BoardView extends WatchUi.View {
         var board = entry["board"] as Lang.Dictionary;
         _boardStation = board["station"];
         _scheduled = false;
+        _boardTime = entry["time"];
         _staleTag = "Cached";
         _partial = board["partial"] == true;
         _refreshError = _parseError;
@@ -479,22 +501,16 @@ class BoardView extends WatchUi.View {
 
     // Refresh sooner while a train is close.
     function refreshDelay() {
-        var entry = BoardStore.load();
-        if (entry != null && entry["board"] instanceof Lang.Dictionary) {
-            var soonest = MtaFormat.soonestSeconds(entry["board"]["arrivals"], Time.now().value());
-            if (soonest != null && (soonest as Lang.Number) <= SOON_S) { return FAST_REFRESH_MS; }
-        }
-        return REFRESH_MS;
+        var soonest = MtaFormat.soonestSeconds(_boardArrivals, Time.now().value());
+        return soonest != null && (soonest as Lang.Number) <= SOON_S ? FAST_REFRESH_MS : REFRESH_MS;
     }
 
-    // One buzz per imminent train when the Train buzz setting is on.
+    // One buzz per imminent train on the shown board (scheduled ones too) when Train buzz is on.
     function maybeBuzz() {
         var lead = Config.vibrateLead();
         if (lead <= 0) { return; }
-        var entry = BoardStore.load();
-        if (entry == null || !(entry["board"] instanceof Lang.Dictionary)) { return; }
         var now = Time.now().value();
-        var next = MtaFormat.nextArrival(entry["board"]["arrivals"], now);
+        var next = MtaFormat.nextArrival(_boardArrivals, now);
         if (next == null) { return; }
         var key = MtaFormat.safeText(next["route"], "?") + "@" + (next["arrival_at"] as Lang.Number).toString();
         if (key.equals(_buzzedKey)) { return; }
@@ -518,8 +534,9 @@ class BoardRequest {
 }
 
 class PackRequest {
-    function initialize() {}
+    hidden var _view;
+    function initialize(view) { _view = view; }
     function onResponse(code as Lang.Number, data as Lang.Dictionary or Lang.String or PersistedContent.Iterator or Null) as Void {
-        if (code == 200) { PackStore.save(data); }
+        if (code == 200 && PackStore.save(data)) { _view.onPack(); }
     }
 }

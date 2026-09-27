@@ -14,7 +14,7 @@ module MtaBoardRenderer {
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.setColor(0xA8A8A8, Graphics.COLOR_TRANSPARENT);
         dc.drawText(w/2, h*0.31, Graphics.FONT_XTINY,
-            MtaFormat.clip(meta, w-120, dc, Graphics.FONT_XTINY),
+            MtaFormat.clip(meta, w-70, dc, Graphics.FONT_XTINY),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(65, h*0.37, w-65, h*0.37);
@@ -38,9 +38,12 @@ module MtaBoardRenderer {
                 row += 1;
             }
         }
-        dc.setColor(0x888888, Graphics.COLOR_TRANSPARENT);
+        // Arrow and walking label centered as one group so a long label stays inside the bezel.
+        var labelWidth = entranceLabel == null ? 0 : dc.getTextWidthInPixels(entranceLabel, Graphics.FONT_XTINY);
+        var arrowWidth = direction == null ? 0 : (entranceLabel == null ? 30 : 38);
+        var left = w/2 - (arrowWidth + labelWidth) / 2;
         if (direction != null) {
-            var ax = w/2;
+            var ax = left + 15;
             var ay = h*0.12;
             var dx = Math.sin(direction);
             var dy = -Math.cos(direction);
@@ -53,9 +56,8 @@ module MtaBoardRenderer {
         }
         if (entranceLabel != null) {
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(direction == null ? w/2 : w/2+24, h*0.12, Graphics.FONT_XTINY, entranceLabel,
-                (direction == null ? Graphics.TEXT_JUSTIFY_CENTER : Graphics.TEXT_JUSTIFY_LEFT) |
-                Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.drawText(left + arrowWidth, h*0.12, Graphics.FONT_XTINY, entranceLabel,
+                Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
         if (row == 0 && arrivals != null) {
             dc.setColor(0xA8A8A8, Graphics.COLOR_TRANSPARENT);

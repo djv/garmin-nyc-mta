@@ -1,5 +1,13 @@
 # Findings
 
+## v0.7 polish: glance nearest station, storage reads, clipping — 2026-09-27
+- `Position.getInfo()` works in the glance scope; the simulator's Set Position feeds it. The glance uses it to pick the nearest pack station.
+- The glance previously re-read the board (several times) and the pack from Storage on every 5 s redraw. Each read copies the whole value into the 60 KB glance heap. It now caches both per show. Simulator glance memory offline with a pack: 31.3/59.8 KB.
+- The board read `BoardStore.load()` every second (refreshDelay, maybeBuzz, meta age) and `PackStore.ageSeconds()` (the whole pack) every second when scheduled. It now uses in-memory `_boardArrivals`/`_boardTime`.
+- FR965 FONT_GLANCE fits about 10 characters beside the route badge. The glance primary line reads "7m Fort Ha..." and the second line "Home by 7:46" (fits).
+- Board meta line: the chord at y=0.31h is about 420 px, so it now clips at w-70 (was w-120).
+- Simulator BLE: Settings > Connection Type > BLE > Connected / Not Connected. It stayed "Not Connected" from the earlier session, which showed "Check phone link".
+
 ## Run pack — 2026-09-26
 
 Goal: show trains home mid-run without the phone (FR965 has no LTE; Connect IQ web

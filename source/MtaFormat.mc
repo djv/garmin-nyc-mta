@@ -81,7 +81,8 @@ module MtaFormat {
         if (text.equals("Canarsie-Rockaway Pkwy")) { return "Canarsie"; }
         if (text.equals("Forest Hills-71 Av")) { return "Forest Hills"; }
         if (text.equals("Coney Island-Stillwell Av")) { return "Coney Island"; }
-        if (text.equals("Jamaica-179 St")) { return "Jamaica 179 St"; }
+        if (text.equals("Jamaica-179 St")) { return "Jamaica"; }
+        if (text.equals("Bedford-Nostrand Avs")) { return "Bedford"; }
         if (text.equals("Flatbush Av-Brooklyn College")) { return "Flatbush Av"; }
         if (text.equals("Jamaica Center-Parsons/Archer")) { return "Parsons/Archer"; }
         if (text.equals("Middle Village-Metropolitan Av")) { return "Metropolitan Av"; }

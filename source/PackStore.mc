@@ -110,8 +110,9 @@ module PackStore {
             if (!(dep instanceof Lang.Number) || !(idx instanceof Lang.Number) || !Config.numeric(mins)) { continue; }
             if (dep < now) { continue; }
             var route = idx >= 0 && idx < routes.size() ? routes[idx] : "?";
-            rows.add({"route" => route, "dest" => "by " + clock(dep + (mins as Lang.Number) * 60),
-                      "arrival_at" => dep, "scheduled" => true});
+            var home = dep + ((mins as Lang.Number) * 60).toNumber();
+            rows.add({"route" => route, "dest" => "by " + clock(home),
+                      "arrival_at" => dep, "home_at" => home, "scheduled" => true});
         }
         var info = {"id" => station["id"], "name" => station["name"], "lat" => station["lat"],
                     "lon" => station["lon"], "routes" => routes};

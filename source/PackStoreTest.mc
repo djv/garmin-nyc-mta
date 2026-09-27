@@ -29,6 +29,7 @@ function packStoreRules(logger) {
         Test.assert(rows[0]["route"].equals("R"));
         Test.assert(rows[0]["arrival_at"] == now + 300);
         Test.assert((rows[0]["dest"] as Lang.String).find("by ") == 0);
+        Test.assert(rows[0]["home_at"] > rows[0]["arrival_at"]);
         Test.assert(b["station"]["entrances"].size() == 1);
         Test.assert(Config.alerts(b["station"]).size() == 1);
 

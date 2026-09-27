@@ -25,6 +25,10 @@ class MtaGlanceView extends WatchUi.GlanceView {
     hidden var _forceRefresh = false;
     hidden var _alert = false;
     hidden var _scheduledGlance = false;
+    // Storage reads copy the whole value into the small glance heap: read once per show.
+    hidden var _entry = null;
+    hidden var _pack = null;
+    hidden var _packStation = null;
 
     function initialize() {
         GlanceView.initialize();
@@ -38,7 +42,9 @@ class MtaGlanceView extends WatchUi.GlanceView {
 
     function onShow() {
         _visible = true;
-        var cached = BoardStore.load();
+        _entry = BoardStore.load();
+        loadPack();
+        var cached = _entry;
         _selection = null;
         if (cached instanceof Lang.Dictionary && cached["board"] instanceof Lang.Dictionary) {
             _selection = GlanceSelection.forStation(cached["board"]["station"]);
@@ -61,7 +67,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
             _forceRefresh = true;
             _retryAt = now + 30000;
         }
-        var entry = BoardStore.load();
+        var entry = _entry;
         var age = BoardStore.ageSeconds(entry);
         if (entry == null) { return; }
         if (!_refreshing && now >= _retryAt && (_forceRefresh || age == null || age < 0 || (age as Lang.Number) >= REFRESH_MIN_S)) {
@@ -85,6 +91,9 @@ class MtaGlanceView extends WatchUi.GlanceView {
         _generation += 1;
         _refreshing = false;
         _redrawTimer.stop();
+        _entry = null;
+        _pack = null;
+        _packStation = null;
     }
 
     function onRedrawTick() {
@@ -108,7 +117,8 @@ class MtaGlanceView extends WatchUi.GlanceView {
                 stations[0] instanceof Lang.Dictionary &&
                 Config.station(stations[0]["station"]) &&
                 stations[0]["arrivals"] instanceof Lang.Array) {
-                BoardStore.savePrimary(stations[0]);
+                var saved = BoardStore.savePrimary(stations[0]);
+                if (saved != null) { _entry = saved; }
                 _offline = false;
                 _forceRefresh = false;
             }
@@ -122,7 +132,9 @@ class MtaGlanceView extends WatchUi.GlanceView {
     function paintFromCache() {
         _route = null;
         _scheduledGlance = false;
-        var entry = BoardStore.load();
+        var entry = _entry;
+        // Offline (e.g. mid-run without the phone), the run pack beats a stale home board.
+        if (_offline && paintFromPack()) { return; }
         if (!(entry instanceof Lang.Dictionary) || !(entry["board"] instanceof Lang.Dictionary)) {
             _primary = "MTA";
             _stationName = null;
@@ -144,8 +156,6 @@ class MtaGlanceView extends WatchUi.GlanceView {
         if (arrs instanceof Array && arrs.size() > 0 && arrs[0] instanceof Lang.Dictionary) {
             _route = MtaFormat.safeText(arrs[0]["route"], "?");
             _primary = MtaFormat.arrivalWhen(arrs[0]) + " " + MtaFormat.shortDestination(arrs[0]["dest"]);
-        } else if (_offline && paintFromPack()) {
-            return;
         } else {
             var age = BoardStore.ageSeconds(entry);
             _primary = _offline ? "Offline" : (_refreshing ? "Refreshing" :
@@ -153,16 +163,26 @@ class MtaGlanceView extends WatchUi.GlanceView {
         }
     }
 
-    // Offline with a run pack: next scheduled train home from the run's destination.
+    // The run pack and its station nearest the watch's last known position (the run just
+    // finished), else the run's destination.
+    function loadPack() {
+        _pack = PackStore.load();
+        _packStation = null;
+        if (_pack == null) { return; }
+        var fix = LastFix.recent();
+        if (fix != null) { _packStation = PackStore.nearest(_pack, fix[0], fix[1], null); }
+        if (_packStation == null) { _packStation = PackStore.destination(_pack); }
+    }
+
+    // Next scheduled train home from the pack station: "4m Parkside Av" over "Home by 23:34".
     function paintFromPack() {
-        var pack = PackStore.load();
-        var station = pack == null ? null : PackStore.destination(pack);
+        var station = _packStation;
         if (station == null) { return false; }
         var rows = PackStore.board(station, Time.now().value())["arrivals"] as Lang.Array;
         if (rows.size() == 0) { return false; }
         _route = MtaFormat.safeText(rows[0]["route"], "?");
-        _primary = MtaFormat.arrivalWhen(rows[0]) + " " + rows[0]["dest"];
-        _stationName = "Sched " + MtaFormat.safeText(station["name"], "");
+        _primary = MtaFormat.arrivalWhen(rows[0]) + " " + MtaFormat.safeText(station["name"], "");
+        _stationName = "Home by " + PackStore.clock(rows[0]["home_at"]);
         _alert = false;
         _scheduledGlance = true;
         return true;
@@ -173,7 +193,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
             return "Open app";
         }
         if (_scheduledGlance) { return _stationName; }
-        var age = BoardStore.ageSeconds(BoardStore.load());
+        var age = BoardStore.ageSeconds(_entry);
         return (_alert ? "! " : "") + (_refreshing ? "Updating " : (_offline ? "Offline " : "")) +
             (age != null ? MtaFormat.ageText(age) + " " : "") + _stationName;
     }
