@@ -4,7 +4,7 @@
 - `Position.getInfo()` works in the glance scope; the simulator's Set Position feeds it. The glance uses it to pick the nearest pack station.
 - The glance previously re-read the board (several times) and the pack from Storage on every 5 s redraw. Each read copies the whole value into the 60 KB glance heap. It now caches both per show. Simulator glance memory offline with a pack: 31.3/59.8 KB.
 - The board read `BoardStore.load()` every second (refreshDelay, maybeBuzz, meta age) and `PackStore.ageSeconds()` (the whole pack) every second when scheduled. It now uses in-memory `_boardArrivals`/`_boardTime`.
-- FR965 FONT_GLANCE fits about 10 characters beside the route badge. The glance primary line reads "7m Fort Ha..." and the second line "Home by 7:46" (fits).
+- FR965 FONT_GLANCE fits about 10 characters beside the route badge. The glance primary line reads "7m Fort Ha..." and the second line "Then 22m, 37m", or "Then 22m" when that does not fit.
 - Board meta line: the chord at y=0.31h is about 420 px, so it now clips at w-70 (was w-120).
 - Terminals: the supplemented GTFS has `trip_headsign` on every trip (0 empty). The pack adds per station `heads` (unique terminals) and `h` (one index per departure). The real 4-station pack grew to 3,541 bytes, under the 4 KB cap.
 - A flaky polishRules failure happened once, only when the simulator had a GPS fix: the glance picked Parkside, which had one train in the fixture, so no "Then". The test now checks every pack station explicitly.
