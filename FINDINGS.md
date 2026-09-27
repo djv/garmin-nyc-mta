@@ -6,6 +6,8 @@
 - The board read `BoardStore.load()` every second (refreshDelay, maybeBuzz, meta age) and `PackStore.ageSeconds()` (the whole pack) every second when scheduled. It now uses in-memory `_boardArrivals`/`_boardTime`.
 - FR965 FONT_GLANCE fits about 10 characters beside the route badge. The glance primary line reads "7m Fort Ha..." and the second line "Home by 7:46" (fits).
 - Board meta line: the chord at y=0.31h is about 420 px, so it now clips at w-70 (was w-120).
+- The glance refreshes only when its cached board is 60 s or older (or a direction is selected). With a fresh (<60 s) live board it keeps showing it for up to a minute after going offline, then switches to the pack. Mid-run the cache is old, so the switch is immediate.
+- Simulator: File > Reset All App Data did not clear Storage here. For a clean start, use a sim-only build that deletes keys in `onShow`. Settings > Set GPS Quality > Not Available gives "No GPS fix".
 - Simulator BLE: Settings > Connection Type > BLE > Connected / Not Connected. It stayed "Not Connected" from the earlier session, which showed "Check phone link".
 
 ## Run pack — 2026-09-26

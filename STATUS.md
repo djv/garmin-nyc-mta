@@ -6,7 +6,16 @@
 - "Ago" now uses the shown board's own time (Cached boards showed the primary board's age). Refresh pacing and Train buzz use the shown board, so scheduled trains buzz too, and the board no longer reads storage every second.
 - A pack arriving while "No GPS fix" is shown fills the board. `restorePack` also uses the last known position.
 
-17 tests pass. In the simulator, offline at 40.653,-73.979, the glance and board both showed Fort Hamilton Pkwy with scheduled G trains; glance memory was 31.3/59.8 KB. Signed `build/NycMta.iq` (38,134 bytes), SHA-256 `55719e09b1cc6d910b24e235a8f72ef47125286fa0fcb2db7dd5b0e63870312d`. Not verified: the pack-arrives-during-no-fix path, and `Position.getInfo` last-known behaviour on the device after an activity.
+The live meta line now leads with the age ("7s ago | Saved GPS / Alert"), because long tags clip at the end.
+
+18 tests pass (new `polishRules` covers the cached-board age, refresh pacing and buzz on the shown board, a late pack on "No GPS fix", the glance preferring the pack offline, and short names). Simulator, all verified:
+- Live board online with the centred arrow and label.
+- Offline cached board with the Offline tag.
+- Late pack (sim-only build that delays the fetch): "No GPS fix" → 45 St scheduled.
+- Offline glance and board both show the nearest pack station (Fort Hamilton Pkwy, G) via last known position; the destination is used with GPS unavailable.
+- Glance memory 31.3/59.8 KB.
+
+Signed `build/NycMta.iq` (38,106 bytes), SHA-256 `81e1ddb9968cfa7553329b0babe68d5cf8db1672ea89f611906d635992821031`, not uploaded. Not verified: on-device `Position.getInfo` after a real activity.
 
 2026-09-26: Offline pack board now shows the pack station nearest the GPS fix at any distance (was: within 1.5 km, else the run's destination), with the entrance arrow and walking time; destination only without a fix. 17 tests pass; simulator at a Prospect Park fix showed Parkside Av, ~13 min, Q rows 2m/14m/24m/42m. Signed `build/NycMta.iq` SHA-256 `b235ccd3fa8779e3121d09426e996730d2b01251cd8ba157e6ab32f0d6587dea` published 2026-09-27 as v0.6 (Internal 6, listing 47 KB) and installed on the FR965 (GarminDevice.xml lists NYC MTA Version 6). Pack key is set in the Connect app; the watch fetched the pack (proxy log 2026-09-26 23:10).
 

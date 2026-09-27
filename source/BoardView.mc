@@ -117,8 +117,9 @@ class BoardView extends WatchUi.View {
             if (Config.alerts(_boardStation).size() > 0) { tag += " / Alert"; }
             if (_refreshError != null) { tag += " / Offline"; }
             else if (_fetching) { tag += " / Updating"; }
+            // Age first: long tag combinations clip at the end.
             var age = boardAge();
-            meta = tag + (age != null ? " | " + MtaFormat.ageText(age) : "");
+            meta = (age != null ? MtaFormat.ageText(age) + " | " : "") + tag;
             if (selection != null && selection["route"] != null) {
                 meta = DirectionLabels.selection(selection) + " | " + meta;
             }
