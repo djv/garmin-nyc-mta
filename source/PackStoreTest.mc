@@ -13,7 +13,7 @@ function packStoreRules(logger) {
             "alerts" => [{"title" => "Delays"}],
             "d" => [now - 120, 0, 20, now + 300, 1, 21, now + 900, 0, 20]};
         var bail = {"id" => "D27", "name" => "Parkside Av", "lat" => 40.6551, "lon" => -73.9616,
-            "routes" => ["Q"], "d" => [now + 60, 0, 14]};
+            "routes" => ["Q"], "d" => [now + 60, 0, 14], "heads" => ["Brighton Beach"], "h" => [0]};
         var pack = {"v" => 1, "generated" => now, "expires" => now + 3600, "stations" => [dest, bail, "junk"]};
 
         Test.assert(!PackStore.save({"stations" => []}));  // no expiry: rejected
@@ -29,7 +29,9 @@ function packStoreRules(logger) {
         Test.assert(rows[0]["route"].equals("R"));
         Test.assert(rows[0]["arrival_at"] == now + 300);
         Test.assert((rows[0]["dest"] as Lang.String).find("by ") == 0);
-        Test.assert(rows[0]["home_at"] > rows[0]["arrival_at"]);
+        // Terminal from heads/h when the pack has them.
+        var bb = PackStore.board(PackStore.find(loaded, {"id" => "D27"}), now)["arrivals"] as Lang.Array;
+        Test.assert(bb[0]["dest"].equals("Brighton Beach"));
         Test.assert(b["station"]["entrances"].size() == 1);
         Test.assert(Config.alerts(b["station"]).size() == 1);
 

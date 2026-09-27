@@ -9,7 +9,7 @@ module PolishFixture {
         var dest = {"id" => "R39", "name" => "45 St", "lat" => 40.6490, "lon" => -74.0100,
             "routes" => ["R"], "d" => [now + 300, 0, 20, now + 900, 0, 20]};
         var bail = {"id" => "D27", "name" => "Parkside Av", "lat" => 40.6551, "lon" => -73.9616,
-            "routes" => ["Q"], "d" => [now + 60, 0, 14]};
+            "routes" => ["Q"], "d" => [now + 60, 0, 14, now + 1200, 0, 14]};
         return {"v" => 1, "generated" => now, "expires" => now + 3600, "stations" => [dest, bail]};
     }
 }
@@ -95,8 +95,21 @@ class PolishGlanceProbe extends MtaGlanceView {
         _offline = true;
         paintFromCache();
         logger.debug("glance: " + _primary + " / " + secondaryText());
-        Test.assert(_scheduledGlance && secondaryText().find("Home by ") == 0);
+        Test.assert(_scheduledGlance && secondaryText().find("Then ") == 0);
         Test.assert(_primary.find(_packStation["name"]) != null);
+        // Each pack station, whichever the last known position picks.
+        var list = PackStore.stations(_pack);
+        for (var i = 0; i < list.size(); i += 1) {
+            _packStation = list[i];
+            paintFromCache();
+            Test.assert(_scheduledGlance && _primary.find(list[i]["name"]) != null);
+            Test.assert(secondaryText().find("Then ") == 0);
+        }
+        // A single remaining train: the station name instead of "Then".
+        _packStation = {"id" => "X1", "name" => "Solo", "lat" => 40.7, "lon" => -73.9,
+            "routes" => ["G"], "d" => [now + 120, 0, 10]};
+        paintFromCache();
+        Test.assert(secondaryText().equals("Solo"));
         // Without a pack, offline falls back to the cached board.
         _packStation = null;
         paintFromCache();

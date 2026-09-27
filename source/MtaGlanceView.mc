@@ -29,6 +29,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
     hidden var _entry = null;
     hidden var _pack = null;
     hidden var _packStation = null;
+    hidden var _thenShort = null;  // "Then 24m" when "Then 24m, 39m" does not fit
 
     function initialize() {
         GlanceView.initialize();
@@ -174,7 +175,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
         if (_packStation == null) { _packStation = PackStore.destination(_pack); }
     }
 
-    // Next scheduled train home from the pack station: "4m Parkside Av" over "Home by 23:34".
+    // Next scheduled train home from the pack station: "4m Parkside Av" over "Then 22m, 37m".
     function paintFromPack() {
         var station = _packStation;
         if (station == null) { return false; }
@@ -182,7 +183,12 @@ class MtaGlanceView extends WatchUi.GlanceView {
         if (rows.size() == 0) { return false; }
         _route = MtaFormat.safeText(rows[0]["route"], "?");
         _primary = MtaFormat.arrivalWhen(rows[0]) + " " + MtaFormat.safeText(station["name"], "");
-        _stationName = "Home by " + PackStore.clock(rows[0]["home_at"]);
+        _stationName = MtaFormat.safeText(station["name"], "");
+        _thenShort = null;
+        if (rows.size() > 1) {
+            _thenShort = "Then " + MtaFormat.arrivalWhen(rows[1]);
+            _stationName = "Then " + MtaFormat.arrivalWhen(rows[1]) + (rows.size() > 2 ? ", " + MtaFormat.arrivalWhen(rows[2]) : "");
+        }
         _alert = false;
         _scheduledGlance = true;
         return true;
@@ -206,7 +212,11 @@ class MtaGlanceView extends WatchUi.GlanceView {
         var f2 = Graphics.FONT_GLANCE;
         var left = _route != null ? 54 : 10;
         var p = MtaFormat.clip(_primary, w - left - 10, dc, f1);
-        var s = MtaFormat.clip(secondaryText(), w - left - 10, dc, f2);
+        var second = secondaryText();
+        if (_scheduledGlance && _thenShort != null && dc.getTextWidthInPixels(second, f2) > w - left - 10) {
+            second = _thenShort;
+        }
+        var s = MtaFormat.clip(second, w - left - 10, dc, f2);
         var h1 = dc.getFontHeight(f1);
         var h2 = dc.getFontHeight(f2);
         var y = (h - h1 - 4 - h2) / 2;

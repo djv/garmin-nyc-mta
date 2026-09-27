@@ -6,7 +6,8 @@ using Toybox.Time.Gregorian;
 
 // Run pack: scheduled trains home from the stations of a planned run, fetched from
 // GET /mta/pack while the phone is connected, shown offline mid-run.
-// Each pack station has d = [departure epoch, route index, minutes to the door, ...].
+// Each pack station has d = [departure epoch, route index, minutes to the door, ...] and
+// h = [index into heads (the train's terminal), ...], one per departure (older packs lack h).
 (:glance)
 module PackStore {
     const KEY = "pack";
@@ -102,6 +103,8 @@ module PackStore {
     function board(station, now) {
         var routes = station["routes"] instanceof Lang.Array ? station["routes"] : [];
         var d = station["d"] as Lang.Array;
+        var heads = station["heads"] instanceof Lang.Array ? station["heads"] : [];
+        var h = station["h"] instanceof Lang.Array ? station["h"] : [];
         var rows = [] as Lang.Array;
         for (var i = 0; i + 2 < d.size() && rows.size() < MAX_ROWS; i += 3) {
             var dep = d[i];
@@ -111,8 +114,10 @@ module PackStore {
             if (dep < now) { continue; }
             var route = idx >= 0 && idx < routes.size() ? routes[idx] : "?";
             var home = dep + ((mins as Lang.Number) * 60).toNumber();
-            rows.add({"route" => route, "dest" => "by " + clock(home),
-                      "arrival_at" => dep, "home_at" => home, "scheduled" => true});
+            var k = i / 3;
+            var head = k < h.size() && h[k] instanceof Lang.Number && h[k] >= 0 && h[k] < heads.size() ? heads[h[k]] : null;
+            rows.add({"route" => route, "dest" => head instanceof Lang.String ? head : "by " + clock(home),
+                      "arrival_at" => dep, "scheduled" => true});
         }
         var info = {"id" => station["id"], "name" => station["name"], "lat" => station["lat"],
                     "lon" => station["lon"], "routes" => routes};
