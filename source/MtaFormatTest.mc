@@ -8,9 +8,11 @@ function distanceFormatRules(logger) {
     Test.assert(MtaFormat.distanceText(500, "feet").equals("0.3 mi"));
     Test.assert(MtaFormat.distanceText(1609.344, "miles").equals("1.0 mi"));
     Test.assert(MtaFormat.distanceText(0, "walk").equals("1 min walk"));
-    Test.assert(MtaFormat.distanceText(81, "walk").equals("1 min walk"));
+    Test.assert(MtaFormat.distanceText(81, "walk").equals("2 min walk"));
     Test.assert(MtaFormat.distanceText(100, "walk").equals("2 min walk"));
-    Test.assert(MtaFormat.distanceText(200, "walk").equals("3 min walk"));
+    Test.assert(MtaFormat.distanceText(200, "walk").equals("4 min walk"));
+    // Grid detour: 368 m straight-line (Barclays -> Fulton St G) reads 6 min.
+    Test.assert(MtaFormat.distanceText(368, "walk").equals("6 min walk"));
     Test.assert(MtaFormat.distanceText(100, null).equals("2 min walk"));
     Test.assert(MtaFormat.distanceText(100, "bogus").equals("2 min walk"));
     Test.assert(MtaFormat.distanceText(null, "meters") == null);

@@ -1,5 +1,7 @@
 # Current status
 
+2026-09-20: Walking-time estimate de-optimized for the city grid: `MtaFormat` applies a 1.3x grid detour to the straight-line distance (Meters/Feet/Miles stay raw). `MtaFormatTest.distanceFormatRules` updated plus a 368 m case; distance assertions pass; production and test builds compile. Not yet in a published build.
+
 2026-09-20: v0.4 (Internal 4) published to the Garmin Connect IQ listing (status Pending) and installed on the physical FR965 (user-confirmed). Signed artifact `build/NycMta.iq`, SHA-256 `f38185863ddc8f1c4b4295e3d8cff05a15b330267b843a0489c41296e55857f3`, listing size 43 KB. What's New covers service alerts, the Distance setting, Now, UP/DOWN commutes, faster close-train refresh, optional train buzz, and offline per-station boards.
 
 2026-09-20: Offline multi-station cache: up to eight per-station boards, Cached fallback for the selected station, cached-age hints in recents. Watch suite: 16 tests pass.

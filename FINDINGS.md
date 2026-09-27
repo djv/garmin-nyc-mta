@@ -25,6 +25,19 @@ buzz, and offline per-station boards." The published notes do not mention the
 entrance arrow / walking-time distance added after the 0.3 upload. Listing
 Latest Release still displays September 11, 2026 (known stale field).
 
+## Walking-time grid detour — 2026-09-20
+
+Walking-time estimates treated straight-line distance at 1.35 m/s (~4.9 km/h),
+which reads optimistic on NYC's right-angle grid. `MtaFormat.distanceText` now
+multiplies by `GRID_DETOUR = 1.3` (average Manhattan grid detour: L1/Euclidean
+is ~1.27, plus a small allowance for crossings) before converting to minutes;
+the Meters/Feet/Miles units remain raw straight-line. Examples: 81 m 1->2 min,
+200 m 3->4 min, 368 m (Barclays -> Fulton St G) 5->6 min, 800 m 10->13 min.
+`MtaFormatTest.distanceFormatRules` was updated and a 368 m grid case added; all
+distance assertions pass host-side; production and test builds compile. Simulator
+suite not rerun (a dev simulator session was already active). Constant is a
+single knob in `source/MtaFormat.mc` if the estimate needs retuning.
+
 ## Offline multi-station cache — 2026-09-20
 
 `BoardStore` gained a `boards` key holding up to eight per-station entries,

@@ -32,8 +32,10 @@ USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
   The app appends the API path. The exact old bundled Cloudflare URL is migrated
   and saved automatically; other custom settings are preserved. Custom servers
   require HTTPS with a trusted certificate. MTA upstream outages remain possible.
-- Distance defaults to Walking time (`~3 min walk`, straight-line at ~5 km/h);
-  switch to Meters, Feet or Miles. Applies to the board label and station menus.
+- Distance defaults to Walking time (`~3 min walk`); the estimate walks the
+  straight-line distance at ~4.9 km/h and applies a 1.3x street-grid detour so
+  it is not optimistic in gridded Manhattan. Switch to Meters, Feet or Miles for
+  the raw straight-line distance. Applies to the board label and station menus.
 - Train buzz is Off by default; 2 or 5 minutes before the next cached arrival
   the watch vibrates once. It only fires while the board is visible.
 
@@ -107,6 +109,8 @@ list is distance-sorted when a location no more than five minutes old is
 available, otherwise most-recent-first. Entries with a cached board show
 `cached <age>`. Distances are approximate straight-line
 distances to GTFS station points, not walking routes or entrance distances.
+Walking-time estimates apply the 1.3x grid detour to that straight-line
+distance; the Meters/Feet/Miles units stay raw straight-line.
 Station coordinates never serve as the user’s location.
 
 Automatic nearest clears the filter and reacquires location. A selected station
