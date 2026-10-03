@@ -299,3 +299,21 @@ Agent-tested: watch simulator tests (11 in that run; 18 `(:test)` functions in s
 - No physical-menu/UP/DOWN/Run/GPS result arrived, no watch operation/unmount was
   issued, and no menu package was published. Existing pending field checks and
   the user's explicit no-unmount preference remain in the current status.
+
+## User-observed menu checks and save — 2026-10-03
+- User selected “Check watch menu” in the native questionnaire. For the instruction
+  NYC MTA → START → Nearby stations, the user answered “Times and hints appear”.
+  This confirms the bundled entrance walking-time/home hints render on the FR965.
+- For Nearby stations → chosen station → All trains, the user answered “Correct
+  station shown”. This confirms that navigation returns to the selected station's
+  board. No station name, arrival count or direction-filter display was supplied,
+  so live-arrival completeness and physical filter clearing are not inferred.
+- User then requested `ss` and asked what remains for the app. Remaining checks:
+  Follow location/UP-DOWN browsing, native Run/GPS continuity and phone-free fallback.
+  The menu candidate is not store-uploaded in this session; publication still needs
+  separate authorization. Eight-row proxy truncation/Partial boards remain a known
+  completeness limitation, not a newly reproduced fault.
+- Updated STATUS.md and this evidence only. Source and build artifacts are unchanged,
+  so the completed 22-test/build and USB readback results are reused. No device
+  unmount/eject or Garmin publication was performed. The prior no-unmount instruction
+  remains applicable to agent device operations; current connection state is unknown.
