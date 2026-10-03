@@ -1,0 +1,44 @@
+{
+ "entrances": 1236,
+ "generator": "tools/build_stations.py",
+ "home": [
+  40.73339,
+  -73.99367
+ ],
+ "homeLabel": "34 E 11th St",
+ "homeRadiusM": 700,
+ "homeRule": "per platform direction, lines whose 06:00-21:00 trips reach a station within 700 m of home at least 50% of the time",
+ "homeStations": [
+  "14 St",
+  "14 St-Union Sq",
+  "3 Av",
+  "6 Av",
+  "8 St-NYU",
+  "Astor Pl",
+  "W 4 St-Wash Sq"
+ ],
+ "platforms": 258,
+ "radiusM": 10000,
+ "sources": {
+  "entrances": {
+   "name": "MTA Subway Entrances and Exits: 2024 (data.ny.gov i9wp-a4ja)",
+   "retrieved": "2026-09-13",
+   "sha256": "278835e3ed7eece8c3629ad675aecf1cef7b02c339a55345bde731cf913fb526",
+   "url": "https://data.ny.gov/resource/i9wp-a4ja.json"
+  },
+  "gtfs": {
+   "feed": "20260526..20261031",
+   "name": "MTA NYCT subway GTFS static",
+   "sha256": "2c9e69b82ac596a2fe660b56656509570cfba3c2e4c50be75eaf624eee1bc6f8",
+   "url": "http://web.mta.info/developers/data/nyct/subway/google_transit.zip",
+   "version": "20260826-X-long-term-supplement-trip-ids"
+  },
+  "stations": {
+   "name": "MTA Subway Stations (data.ny.gov 39hk-dx4f)",
+   "retrieved": "2026-09-29",
+   "sha256": "42ae7c7e56b81332f398ce27a5e2fa9697da556ea99d98be9dc4e3a61e7141f1",
+   "url": "https://data.ny.gov/api/views/39hk-dx4f/rows.csv?accessType=DOWNLOAD"
+  }
+ },
+ "stations": 229
+}

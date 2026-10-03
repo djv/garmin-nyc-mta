@@ -30,6 +30,11 @@ class MtaGlanceView extends WatchUi.GlanceView {
     hidden var _pack = null;
     hidden var _packStation = null;
     hidden var _thenShort = null;  // "Then 24m" when "Then 24m, 39m" does not fit
+    // Offline fallback: the bundled station nearest the last known position, looked up once
+    // per show as [route, name, second line] (the dataset itself is never kept).
+    hidden var _staticGlance = false;
+    hidden var _offlineLoaded = false;
+    hidden var _offlineStation = null;
 
     function initialize() {
         GlanceView.initialize();
@@ -95,6 +100,8 @@ class MtaGlanceView extends WatchUi.GlanceView {
         _entry = null;
         _pack = null;
         _packStation = null;
+        _offlineLoaded = false;
+        _offlineStation = null;
     }
 
     function onRedrawTick() {
@@ -133,6 +140,7 @@ class MtaGlanceView extends WatchUi.GlanceView {
     function paintFromCache() {
         _route = null;
         _scheduledGlance = false;
+        _staticGlance = false;
         var entry = _entry;
         // Offline (e.g. mid-run without the phone), the run pack beats a stale home board.
         if (_offline && paintFromPack()) { return; }
@@ -158,6 +166,8 @@ class MtaGlanceView extends WatchUi.GlanceView {
             _route = MtaFormat.safeText(arrs[0]["route"], "?");
             _primary = MtaFormat.arrivalWhen(arrs[0]) + " " + MtaFormat.shortDestination(arrs[0]["dest"]);
         } else {
+            // Offline with no trains left on the cached board: the nearest bundled station.
+            if (_offline && paintFromStatic()) { return; }
             var age = BoardStore.ageSeconds(entry);
             _primary = _offline ? "Offline" : (_refreshing ? "Refreshing" :
                 (age == null || age >= REFRESH_MIN_S ? "Stale data" : "No trains"));
@@ -194,11 +204,40 @@ class MtaGlanceView extends WatchUi.GlanceView {
         return true;
     }
 
+    // "Astor Pl" over "Home: 6 Uptown" (or the walk time without a one-seat ride home).
+    function paintFromStatic() {
+        if (!_offlineLoaded) {
+            _offlineLoaded = true;
+            _offlineStation = offlineStation(lastKnown());
+        }
+        if (_offlineStation == null) { return false; }
+        _route = _offlineStation[0];
+        _primary = _offlineStation[1];
+        _stationName = _offlineStation[2];
+        _thenShort = null;
+        _alert = false;
+        _staticGlance = true;
+        return true;
+    }
+
+    function lastKnown() { return LastFix.recent(); }
+
+    function offlineStation(fix) {
+        if (fix == null) { return null; }
+        var list = OfflineStations.nearest(fix[0], fix[1], 1);
+        if (list.size() == 0) { return null; }
+        var st = OfflineStations.station(list[0][0]);
+        if (st == null) { return null; }
+        var hint = OfflineStations.hint(st, 1);
+        return [OfflineStations.homeRoute(st), st["name"], hint != null ? hint :
+            MtaFormat.safeText(MtaFormat.distanceLabel(OfflineStations.meters(st, fix[0], fix[1]), Config.distanceUnit()), "")];
+    }
+
     function secondaryText() {
         if (_stationName == null) {
             return "Open app";
         }
-        if (_scheduledGlance) { return _stationName; }
+        if (_scheduledGlance || _staticGlance) { return _stationName; }
         var age = BoardStore.ageSeconds(_entry);
         return (_alert ? "! " : "") + (_refreshing ? "Updating " : (_offline ? "Offline " : "")) +
             (age != null ? MtaFormat.ageText(age) + " " : "") + _stationName;

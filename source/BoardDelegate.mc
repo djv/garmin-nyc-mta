@@ -24,12 +24,12 @@ class BoardDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onNextPage() {
-        _view.cycleRecent(1);
+        _view.cycleNearby(1);
         return true;
     }
 
     function onPreviousPage() {
-        _view.cycleRecent(-1);
+        _view.cycleNearby(-1);
         return true;
     }
 }

@@ -50,19 +50,56 @@ phone is connected. The pack holds up to 30 scheduled departures per station for
 next 4 hours that reach a station near home (one-seat rides, planned work included),
 with minutes to the door, entrances and alert titles; it expires after 36 h.
 
-When a live request fails (no phone), the board shows the pack station matching the
-selection, else the one within 1.5 km of the fix, else the run's destination:
+When a live request fails (no phone), a nearby choice uses only the matching pack
+station ID. If that station is absent or its departures have passed, it shows the
+cached trains or bundled station information instead. With no nearby list or explicit
+selection, the pack falls back to the nearest pack station (any distance), then the
+run's destination without a usable fix:
 `Sched home` in the header, rows as route bullet, `by 22:01` (door arrival) and a
 countdown. The glance shows the destination's next scheduled train when offline or
 when nothing else is cached. Scheduled times can be a few minutes off real trains.
 
+## Offline stations (bundled, no phone, no key)
+
+The app ships a fixed dataset of every subway station within 10 km of home
+(34 E 11th St; 229 stations from 258 MTA platforms, 1,236 entrances), built by
+`tools/build_stations.py` into `resources/stations/` (see `meta.json` for sources,
+dates and SHA-256). Per station: name, lines, platform direction labels from MTA
+Stations.csv ("Uptown" / "Downtown", "Manhattan" / "Outbound"...), entry-allowed
+entrances, and the lines that ride home without a change ("Home: 4 5 Uptown"),
+precomputed from GTFS stop order: a line counts in a direction when at least half of
+its 06-21 h trips from that platform later stop within 700 m of home (same rule as
+the proxy's home stations). No schedules.
+
+When a live request fails, the board falls back in this order: fresh run pack (it has
+times) > cached board for the requested station with trains still to come > the shown
+board while it has trains and is within 1 km > the bundled station nearest the GPS fix
+(or the watch's last known position, <15 min; the selected station when one is
+selected). The offline board shows the entrance arrow and walk time, the ride home in
+the meta line, one row per line group and direction (rides home first, in green) and
+`Offline map` at the bottom. Stations → **Nearby stations** lists the five nearest with
+walk time and ride home, using the same bundled data with or without the phone;
+choose **All trains** or a line/direction to select one. Offline with no trains left on its
+cached board, the glance shows the nearest bundled station and its ride home. The
+glance loads only the 3.9 KB coordinate index and one 16-station chunk.
+
+Regenerate after new MTA data: `python3 tools/build_stations.py` (`--check` verifies
+the checked-in output; inputs: `tools/data/Stations.csv`, mta-proxy's
+`google_transit.zip` and `data/entrances-2024.json`).
+
 ## Controls
 
-Tap: refresh location and arrivals. UP/DOWN cycle through saved recent commutes
-(the first press with no selection picks the nearest/newest); START opens
-Stations. Automatic arrivals refresh every 60s, or every 30s while a train is
-within five minutes; automatic-nearest mode checks GPS every 120s while visible. Explicit station
-selections remain fixed. Valid cached arrivals appear immediately on opening.
+The app opens in Nearby mode, showing the nearest bundled station when a recent
+watch position is available. DOWN advances through the five nearest station complexes;
+UP goes back, and both wrap. This works without a phone or saved commutes, clears any
+line/direction filter, and continues checking GPS every 120s while visible. Moving
+beyond the current five stations resets browsing to the new nearest station.
+Tap refreshes location and arrivals; START opens Stations, including Recent commutes.
+Explicit menu selections remain fixed. Arrivals refresh every 60s, or every 30s while
+a train is within five minutes. Without a position, a cached board is labelled Last station.
+Nearby uses the bundled official station complexes and entrances to avoid including
+another avenue's same-name station. Removed live rows are marked Partial; the proxy's
+eight-row limit can still omit valid trains before filtering.
 GPS fixes must have valid coordinates and be between zero and five minutes old;
 reused fixes are marked Saved GPS, independently of arrival age.
 A valid cached watch fix is used immediately, without waiting
@@ -130,10 +167,17 @@ Walking-time estimates apply the 1.3x grid detour to that straight-line
 distance; the Meters/Feet/Miles units stay raw straight-line.
 Station coordinates never serve as the user’s location.
 
-Automatic nearest clears the filter and reacquires location. A selected station
+The Stations menu has **Nearby stations**, **Recent commutes**, **Service alerts**
+when alerts exist, and **Follow location** only while a manual selection is active.
+There is one Nearby list for both live and offline use. Its walking estimate targets
+the nearest entrance, and the green note shows the usual direct ride home.
+Line/direction choices use live destinations when available and bundled platform
+direction labels otherwise.
+
+Follow location clears the filter and reacquires location. A selected station
 stays selected during refresh; background refresh does not change recency.
-Nearby entries are from the last automatic-location query (up to five GTFS
-station points, merged where applicable).
+Nearby entries are recomputed from the five nearest bundled station complexes,
+retaining any live destination labels already fetched for them.
 
 Requires the matching proxy update: optional `station`, `route`, and `dir=N|S`
 board parameters, with filtering before the arrival limit, plus per-station

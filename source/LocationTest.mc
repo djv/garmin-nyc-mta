@@ -26,6 +26,7 @@ class LocationBoardProbe extends BoardView {
         calls += 1; target = _requestSelection; latitude = lat; _staleTag = stale;
     }
     function refresh() { gpsChecks += 1; _nextLocation = System.getTimer() + LOCATION_MS; }
+    function lastKnown() { return null; }  // the simulator's position would pick a bundled station
     function run(station) {
         _fetching = true;
         onFix(null, null, null);
@@ -43,13 +44,13 @@ class LocationBoardProbe extends BoardView {
         onFix(40.7, -73.9, 301);
         Test.assert(locationLat == null);
         onFix(40.7, -73.9, 60);
-        Test.assert(target == null && locationLat == 40.7 && _staleTag.equals("Saved GPS"));
+        Test.assert(target["station"]["id"].equals(nearby[0]["station"]["id"]) && locationLat == 40.7 && _staleTag.equals("Saved GPS"));
         onFix(40.8, -73.8, null);
         Test.assert(latitude == 40.8 && locationLon == -73.8);
         _fetching = false;
         _nextLocation = System.getTimer() + LOCATION_MS;
         onRefreshTick();
-        Test.assert(target == null && gpsChecks == 0);
+        Test.assert(target["station"]["id"].equals(nearby[0]["station"]["id"]) && gpsChecks == 0);
         _fetching = false;
         _nextLocation = 0;
         onRefreshTick();

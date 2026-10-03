@@ -15,6 +15,9 @@ class BoardView extends WatchUi.View {
     static const LOCATION_MS = 120000;
     static const PACK_REFRESH_S = 600;
     hidden var _scheduled = false;
+    // The shown board is a bundled offline station: lines and directions, no times.
+    hidden var _static = false;
+    static const KEEP_BOARD_M = 1000;
     hidden var _nextLocation = 0;
     hidden var _requestSelection = null;
     hidden var _freshGpsPending = false;
@@ -41,6 +44,8 @@ class BoardView extends WatchUi.View {
     hidden var _refreshError;
     hidden var _partial;
     var nearby;
+    // Nearby browsing stays in automatic-location mode; explicit menu filters use selection.
+    hidden var _nearbyStation = null;
     var selection;
     var locationLat;
     var locationLon;
@@ -75,8 +80,9 @@ class BoardView extends WatchUi.View {
         _heading = null;
         try { Sensor.enableSensorEvents(method(:onCompass)); } catch (e) {}
         if (_boardName == null && selection == null) {
+            updateNearby();
             var cached = BoardStore.load();
-            if (cached != null) {
+            if (!restoreStatic() && cached != null) {
                 _boardStation = cached["board"]["station"];
                 _staleTag = "Last station";
                 _partial = cached["board"]["partial"] == true;
@@ -106,13 +112,23 @@ class BoardView extends WatchUi.View {
 
     function onUpdate(dc) {
         var meta = _statusMeta != null ? _statusMeta : "";
+        if (_boardName != null && _static) {
+            var hint = OfflineStations.hint(_boardStation, null);
+            var target0 = stationTarget();
+            MtaBoardRenderer.drawStatic(dc, _boardName, hint != null ? hint : "No direct train home",
+                _fetching ? "Updating..." : "Offline map", _boardStation,
+                stationDirection(target0), target0 == null ? null : MtaFormat.distanceLabel(target0["meters"], Config.distanceUnit()));
+            return;
+        }
         if (_boardName != null && _scheduled) {
             // Timetable rows: the pack's age says nothing about them.
             meta = "Sched home" + (Config.alerts(_boardStation).size() > 0 ? " / Alert" : "") +
+                (_partial ? " / Partial" : "") +
                 (_fetching ? " / Updating" : "");
         } else if (_boardName != null) {
             var tag = _staleTag != null ? _staleTag : "Live";
             if (selection != null) { tag = "Selected"; }
+            else if (_nearbyStation != null || locationLat != null) { tag = "Nearby"; }
             if (_partial) { tag += " / Partial"; }
             if (Config.alerts(_boardStation).size() > 0) { tag += " / Alert"; }
             if (_refreshError != null) { tag += " / Offline"; }
@@ -158,32 +174,62 @@ class BoardView extends WatchUi.View {
         return Config.alerts(_boardStation);
     }
 
-    // Apply a recent-commute selection without the menu stack (used by UP/DOWN).
-    function select(value) {
-        if (value == null || !Config.station(value["station"])) { return; }
-        selection = value;
-        RecentCommutes.use(value);
+    // Five nearest bundled station complexes, available without the phone or saved commutes.
+    function updateNearby() {
+        var pos = offlinePosition();
+        if (pos == null) { nearby = []; _nearbyStation = null; return; }
+        var list = OfflineStations.nearest(pos[0], pos[1], 5);
+        var previous = nearby;
+        nearby = [];
+        for (var i = 0; i < list.size(); i += 1) {
+            var entry = {"station" => OfflineStations.station(list[i][0])};
+            for (var j = 0; j < previous.size(); j += 1) {
+                if (previous[j]["station"]["id"].equals(entry["station"]["id"])) {
+                    entry["options"] = previous[j]["options"];
+                    break;
+                }
+            }
+            nearby.add(entry);
+        }
+        if (_nearbyStation != null) {
+            var index = nearbyIndex(_nearbyStation);
+            _nearbyStation = nearby.size() == 0 ? null : nearby[index < 0 ? 0 : index]["station"];
+        }
+    }
+
+    function nearbyIndex(station) {
+        if (!Config.station(station)) { return -1; }
+        for (var i = 0; i < nearby.size(); i += 1) {
+            var st = nearby[i]["station"];
+            if (st["id"].equals(station["id"])) { return i; }
+        }
+        return -1;
+    }
+
+    function nearbySelection() {
+        var station = _nearbyStation != null ? _nearbyStation : (nearby.size() > 0 ? nearby[0]["station"] : null);
+        return station == null ? null : {"station" => station, "route" => null, "dir" => null};
+    }
+
+    // DOWN advances from the shown station, UP goes back, and both wrap. No commute filters.
+    function cycleNearby(delta) {
+        updateNearby();
+        if (nearby.size() == 0) { refresh(); return; }
+        var index = nearbyIndex(_nearbyStation != null ? _nearbyStation : _boardStation);
+        if (index < 0) { index = delta > 0 ? 0 : nearby.size() - 1; }
+        else { index = (index + delta + nearby.size()) % nearby.size(); }
+        _nearbyStation = nearby[index]["station"];
+        selection = null;
+        _tracker.stop();
+        _freshGpsPending = false;
         _boardName = null;
         _boardArrivals = null;
         _fetching = false;
         _requestGen += 1;
-        refresh();
+        _requestSelection = nearbySelection();
+        restoreOffline();
+        onRefreshTick();
         WatchUi.requestUpdate();
-    }
-
-    // Cycle recent commutes; with no current selection, +1 starts at the first.
-    function cycleRecent(delta) {
-        var items = RecentCommutes.sorted(locationLat, locationLon);
-        if (items.size() == 0) { return; }
-        var index = -1;
-        if (selection != null) {
-            for (var i = 0; i < items.size(); i += 1) {
-                if (RecentCommutes.same(items[i], selection)) { index = i; break; }
-            }
-        }
-        if (index < 0) { index = delta > 0 ? 0 : items.size() - 1; }
-        else { index = (index + delta + items.size()) % items.size(); }
-        select(items[index]);
     }
 
     function refresh() {
@@ -196,7 +242,7 @@ class BoardView extends WatchUi.View {
         _refreshError = null;
         _requestDeadline = System.getTimer() + 25000;
         if (_boardName == null) {
-            showStatus("Waiting for GPS", "START: recent commutes");
+            showStatus("Waiting for GPS", "START: stations");
         }
         _requestSelection = selection;
         if (selection != null) {
@@ -211,7 +257,7 @@ class BoardView extends WatchUi.View {
         if (!Config.coordinates(lat, lon) || (staleAge != null && !Config.fixAge(staleAge))) {
             validateLocation();
             if (locationLat != null) {
-                _requestSelection = null;
+                _requestSelection = nearbySelection();
                 fetch(locationLat, locationLon, "Saved GPS", _requestGen);
                 return;
             }
@@ -222,7 +268,8 @@ class BoardView extends WatchUi.View {
         _freshGpsPending = _tracker.usedCache;
         locationLon = lon;
         locationTime = System.getTimer() - (staleAge == null ? 0 : staleAge * 1000);
-        _requestSelection = null;
+        updateNearby();
+        _requestSelection = nearbySelection();
         fetch(lat, lon, staleAge == null ? null : "Saved GPS", _requestGen);
     }
 
@@ -238,12 +285,17 @@ class BoardView extends WatchUi.View {
     }
 
     function fetchLastStation() {
+        if (_nearbyStation != null) {
+            _requestSelection = nearbySelection();
+            fetch(_nearbyStation["lat"], _nearbyStation["lon"], "Nearby", _requestGen);
+            return;
+        }
         var cached = BoardStore.load();
         if (cached == null) {
             _fetching = false;
             // No fix and no cached station (e.g. mid-run, phone at home): a run pack still helps.
             _requestSelection = null;
-            if (restorePack()) { return; }
+            if (restorePack() || restoreStatic()) { return; }
             showStatus("No GPS fix", "Tap: retry");
             return;
         }
@@ -273,7 +325,7 @@ class BoardView extends WatchUi.View {
         _fetching = false;
         var parsed = parseBoard(code, data);
         if (parsed == null) {
-            if (restorePack() || restoreCached()) {
+            if (restoreOffline()) {
                 refreshGpsAfterCache();
                 return;
             }
@@ -281,13 +333,16 @@ class BoardView extends WatchUi.View {
             refreshGpsAfterCache();
             return;
         }
+        keepNearbyComplex(parsed);
         _scheduled = false;
         _boardTime = Time.now().value();
         BoardStore.save(parsed[:raw]);
         cacheStations(data["stations"]);
         RecentCommutes.refreshLabels(parsed[:raw]);
         if (selection != null) { DirectionLabels.update(selection, parsed[:raw]["options"]); }
-        if (_requestSelection == null) {
+        var nearbyAt = nearbyIndex(parsed[:raw]["station"]);
+        if (nearbyAt >= 0) { nearby[nearbyAt]["options"] = parsed[:raw]["options"]; }
+        if (_requestSelection == null && nearby.size() == 0) {
             nearby = [];
             for (var i = 0; i < data["stations"].size(); i += 1) {
                 var item = data["stations"][i];
@@ -298,6 +353,39 @@ class BoardView extends WatchUi.View {
         _boardStation = parsed[:raw]["station"];
         render(parsed[:name], _staleTag, parsed[:arrivals]);
         refreshGpsAfterCache();
+    }
+
+    // The proxy can merge separate same-name stations. Nearby uses the bundled official
+    // complexes so another avenue's trains and entrances do not leak into this choice.
+    function keepNearbyComplex(parsed) {
+        if (selection != null) { return; }
+        var index = nearbyIndex(parsed[:raw]["station"]);
+        if (index < 0) { return; }
+        var station = nearby[index]["station"];
+        var raw = parsed[:raw];
+        raw["station"]["routes"] = station["routes"];
+        raw["station"]["entrances"] = station["entrances"];
+        var arrivals = nearbyRoutes(raw["arrivals"], station["routes"]);
+        raw["options"] = nearbyRoutes(raw["options"], station["routes"]);
+        if (arrivals.size() < parsed[:arrivals].size()) { raw["partial"] = true; }
+        raw["arrivals"] = [];
+        for (var i = 0; i < arrivals.size() && i < 8; i += 1) { raw["arrivals"].add(arrivals[i]); }
+        parsed[:arrivals] = raw["arrivals"];
+    }
+
+    function nearbyRoutes(values, routes) {
+        var result = [];
+        if (!(values instanceof Lang.Array)) { return result; }
+        for (var i = 0; i < values.size(); i += 1) {
+            if (!(values[i] instanceof Lang.Dictionary)) { continue; }
+            for (var r = 0; r < routes.size(); r += 1) {
+                if (MtaFormat.routeLabel(values[i]["route"]).equals(MtaFormat.routeLabel(routes[r]))) {
+                    result.add(values[i]);
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     // Cache every station in a multi-station response for offline browsing.
@@ -320,6 +408,11 @@ class BoardView extends WatchUi.View {
         var station = null;
         if (_requestSelection != null && _requestSelection["station"] instanceof Lang.Dictionary) {
             station = PackStore.find(pack, _requestSelection["station"]);
+            // Same-name stations on different avenues are distinct nearby choices.
+            if (station != null && (nearby.size() > 0 || _nearbyStation != null) &&
+                !station["id"].equals(_requestSelection["station"]["id"])) { return false; }
+            // Browsing must keep the requested station even when its trains are not in the pack.
+            if (station == null && (selection != null || nearby.size() > 0 || _nearbyStation != null)) { return false; }
         }
         if (station == null && Config.fixAge((System.getTimer() - locationTime) / 1000.0)) {
             station = PackStore.nearest(pack, locationLat, locationLon, null);
@@ -333,12 +426,13 @@ class BoardView extends WatchUi.View {
         }
         if (station == null) { return false; }
         var board = PackStore.board(station, Time.now().value());
+        keepNearbyComplex({:raw => board, :arrivals => board["arrivals"]});
         if ((board["arrivals"] as Lang.Array).size() == 0) { return false; }
         _scheduled = true;
         _boardTime = null;
         _boardStation = board["station"];
         _staleTag = "Scheduled";
-        _partial = false;
+        _partial = board["partial"] == true;
         _refreshError = null;
         render(station["name"], _staleTag, board["arrivals"]);
         return true;
@@ -358,11 +452,15 @@ class BoardView extends WatchUi.View {
     }
 
     // On a failed fetch, show the cached board for the requested station.
-    function restoreCached() {
+    function restoreCached() { return restoreCachedBoard(false); }
+
+    function restoreCachedBoard(needTrains) {
         if (_requestSelection == null || !(_requestSelection["station"] instanceof Lang.Dictionary)) { return false; }
         var entry = BoardStore.forStation((_requestSelection["station"] as Lang.Dictionary)["id"]);
         if (!(entry instanceof Lang.Dictionary) || !(entry["board"] instanceof Lang.Dictionary)) { return false; }
         var board = entry["board"] as Lang.Dictionary;
+        keepNearbyComplex({:raw => board, :arrivals => board["arrivals"]});
+        if (needTrains && MtaFormat.soonestSeconds(board["arrivals"], Time.now().value()) == null) { return false; }
         _boardStation = board["station"];
         _scheduled = false;
         _boardTime = entry["time"];
@@ -371,6 +469,65 @@ class BoardView extends WatchUi.View {
         _refreshError = _parseError;
         render((board["station"] as Lang.Dictionary)["name"], _staleTag, board["arrivals"]);
         return true;
+    }
+
+    // A failed live request: live board > fresh run pack (times) > cached board with trains
+    // still to come > the shown board while it has trains and is near > bundled offline
+    // station > any cached board. False keeps the shown board, marked Offline.
+    function restoreOffline() {
+        if (restorePack() || restoreCachedBoard(true)) { return true; }
+        if (!_static && !_scheduled && _boardName != null &&
+            MtaFormat.soonestSeconds(_boardArrivals, Time.now().value()) != null && shownBoardNear()) { return false; }
+        return restoreStatic() || restoreCached();
+    }
+
+    function shownBoardNear() {
+        var pos = offlinePosition();
+        if (selection != null || pos == null || !Config.station(_boardStation)) { return true; }
+        return PackStore.meters(pos[0], pos[1], _boardStation["lat"], _boardStation["lon"]) <= KEEP_BOARD_M;
+    }
+
+    // The board's own fix while valid, else the watch's last known position (<15 min).
+    function offlinePosition() {
+        if (Config.coordinates(locationLat, locationLon) && Config.fixAge((System.getTimer() - locationTime) / 1000.0)) {
+            return [locationLat, locationLon];
+        }
+        return lastKnown();
+    }
+
+    function lastKnown() { return LastFix.recent(); }
+
+    // Bundled offline station: the selected one, else the one nearest the position, else the
+    // requested (last) station. False when none applies.
+    function restoreStatic() {
+        var station = null;
+        if (selection != null || _nearbyStation != null) {
+            station = bundledAt(selection != null ? selection["station"] : _nearbyStation);
+        } else {
+            var pos = offlinePosition();
+            if (pos != null) {
+                var list = OfflineStations.nearest(pos[0], pos[1], 1);
+                if (list.size() > 0) { station = OfflineStations.station(list[0][0]); }
+            }
+            if (station == null && _requestSelection != null) { station = bundledAt(_requestSelection["station"]); }
+        }
+        if (station == null) { return false; }
+        _scheduled = false;
+        _boardTime = null;
+        _boardStation = station;
+        _staleTag = "Offline";
+        _partial = false;
+        _refreshError = null;
+        render(station["name"], _staleTag, null);
+        _static = true;
+        return true;
+    }
+
+    // The bundled station at a (live or saved) station's point, within 400 m.
+    function bundledAt(station) {
+        if (!Config.station(station)) { return null; }
+        var list = OfflineStations.nearest(station["lat"], station["lon"], 1);
+        return list.size() > 0 && list[0][1] <= 400 ? OfflineStations.station(list[0][0]) : null;
     }
 
     function refreshGpsAfterCache() {        if (!_freshGpsPending || !_visible || selection != null) { return; }
@@ -395,6 +552,7 @@ class BoardView extends WatchUi.View {
 
     function choose(value) {
         if (value != null && !Config.station(value["station"])) { return; }
+        _nearbyStation = null;
         selection = value;
         if (value != null) { RecentCommutes.use(value); }
         _boardName = null;
@@ -457,6 +615,7 @@ class BoardView extends WatchUi.View {
     // ---- render ----
 
     function showStatus(title, meta) {
+        _static = false;
         _statusTitle = title;
         _statusMeta = meta;
         _boardName = null;
@@ -465,6 +624,7 @@ class BoardView extends WatchUi.View {
     }
 
     function render(name, stale, arrivals) {
+        _static = false;
         _boardName = name;
         _boardArrivals = arrivals;
         _statusTitle = null;
@@ -479,9 +639,9 @@ class BoardView extends WatchUi.View {
         _requestGen += 1;
         _refreshError = null;
         _requestDeadline = System.getTimer() + 25000;
-        _requestSelection = selection;
-        if (selection != null) {
-            fetch(selection["station"]["lat"], selection["station"]["lon"], "Selected", _requestGen);
+        _requestSelection = selection != null ? selection : nearbySelection();
+        if (_requestSelection != null) {
+            fetch(_requestSelection["station"]["lat"], _requestSelection["station"]["lon"], selection != null ? "Selected" : "Nearby", _requestGen);
         } else if (locationLat != null) {
             fetch(locationLat, locationLon, "Saved GPS", _requestGen);
         } else { fetchLastStation(); }
