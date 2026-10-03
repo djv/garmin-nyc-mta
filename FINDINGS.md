@@ -317,3 +317,31 @@ Agent-tested: watch simulator tests (11 in that run; 18 `(:test)` functions in s
   so the completed 22-test/build and USB readback results are reused. No device
   unmount/eject or Garmin publication was performed. The prior no-unmount instruction
   remains applicable to agent device operations; current connection state is unknown.
+
+## Arrow geometry audit and save — 2026-10-03
+- User asked whether the little arrow is geometrically correct and whether its
+  target is the nearest entrance or a single station point. Inspected the current
+  StationCompass, BoardView, MtaBoardRenderer, RecentCommutes and offline generator.
+- StationCompass.target selects the entrance with the smallest spherical straight-line
+  distance from the latest valid GPS coordinates. It falls back to station lat/lon
+  when entrance coordinates are absent. Generator input is filtered to entry_allowed=YES.
+  Current bundled resources contain entrance points for all 229 station complexes;
+  3 Av has four. Nearby live boards preserve the canonical complex's bundled entrances.
+- Direction uses the initial spherical bearing minus Sensor.Info.heading, normalized
+  to 0..2*pi. Renderer uses dx=sin(angle), dy=-cos(angle), and puts the arrowhead at
+  the positive endpoint: up/right/down/left and clockwise orientation agree with
+  that calculation. Garmin documents heading as true-north compass orientation:
+  https://developer.garmin.com/connect-iq/api-docs/Toybox/Sensor/Info.html
+- Existing test log /tmp/mta-menu-qa/tests.log shows stationCompassRules and
+  entranceRules PASS, with PASSED (passed=22, failed=0, errors=0). Reused unchanged
+  source/build evidence; no new simulator run or source change.
+- Accuracy boundary: GPS fixes can be up to 300 seconds old; heading expires after
+  3 seconds. The math audit does not verify physical FR965 compass alignment, GPS
+  accuracy, current entrance availability or direction-specific platform access.
+  The pointer is a direct bearing rather than a routed walking instruction.
+- The subsequent qq questionnaire returned answers={}; no choice or physical arrow
+  observation arrived. Suggested an outdoor stationary 90-degree watch rotation:
+  with one entrance clearly closest, arrow counter-rotation should keep its physical
+  aim toward that entrance. This and other field checks remain pending.
+- User requested ss. Updated STATUS.md and this evidence; no watch operation,
+  unmount/eject, new package build, proxy change or Garmin publication performed.
