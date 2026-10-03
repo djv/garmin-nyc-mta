@@ -282,3 +282,20 @@ Agent-tested: watch simulator tests (11 in that run; 18 `(:test)` functions in s
 - Confirmed the existing watch test log ends with `PASSED (passed=22, failed=0, errors=0)`, and all current source/resource/manifest/build-config inputs predate the tested menu artifact. No duplicate simulator/build run.
 - Ran `tools/build_stations.py --check` under `batch` with one-thread library limits: `up to date: 229 stations`. Generator Python syntax and `git diff --check` pass. Load remained below shared limits. Fetched origin successfully; local and remote main were aligned at the `211f658` baseline before saving.
 - Current objective, verified transfer, no-unmount instruction, offline coverage and pending physical menu/Run checks are recorded in STATUS.md. Store publication of the menu candidate remains a separate action requiring authorization.
+
+## Questionnaire timeout and final handoff save — 2026-10-03
+- User requested a longer questionnaire wait, settling on 55 minutes, then `ss`.
+  The change belongs to `/home/d/system-setup`: implementation `34d5448` is verified
+  on its remote main. Its managed Codex launcher sets a 3,300-second Default-mode
+  deadline; eight focused tests pass, and a synthetic native popup in an isolated
+  real TUI remained open beyond 130 seconds without an automatic answer. No model
+  request was made. Full 55-minute wall-clock verification remains unperformed.
+- Existing shells/views require `source ~/.bash_aliases` and reopening Codex to
+  load the launcher. Detailed objective, evidence, limits and recovery are in
+  `/home/d/system-setup/agents/codex-question-timeout/STATUS.md` and `FINDINGS.md`.
+- This save verified MTA implementation `c53fc0c` on remote main and found its
+  working tree clean before the two handoff edits. Watch source/artifacts were
+  unchanged, so completed build/test and transfer evidence was reused.
+- No physical-menu/UP/DOWN/Run/GPS result arrived, no watch operation/unmount was
+  issued, and no menu package was published. Existing pending field checks and
+  the user's explicit no-unmount preference remain in the current status.
