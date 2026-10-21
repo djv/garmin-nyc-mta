@@ -5,3 +5,9 @@ build/
 .env
 .env.*
 *.log
+
+# Private build-time properties and Python tooling caches.
+resources-local/
+__pycache__/
+.ruff_cache/
+.venv/

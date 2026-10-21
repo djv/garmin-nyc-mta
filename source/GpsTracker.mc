@@ -3,7 +3,7 @@ using Toybox.Position;
 using Toybox.Time;
 using Toybox.Timer;
 
-// One-shot validated GPS acquisition; no station or default-location fallback.
+// Foreground GPS stream with a quick cached fix while waiting for fresh positions.
 class GpsTracker {
     static const LAST_KNOWN_MAX_AGE_S = 300;
     static const TIMEOUT_S = 15;
@@ -15,6 +15,7 @@ class GpsTracker {
     hidden var _requestTime;
     hidden var _noSignalPolls;
     hidden var _done;
+    hidden var _polling = false;
     hidden var _generation = 0;
     var usedCache = false;
 
@@ -40,17 +41,18 @@ class GpsTracker {
         stop();
         usedCache = false;
         _done = false;
+        _polling = true;
         _noSignalPolls = 0;
         _requestTime = Time.now();
         var info = allowCache ? readInfo() : null;
         if (isRecentLastKnown(info)) {
             usedCache = true;
             var degrees = info.position.toDegrees();
-            finish(degrees[0].toDouble(), degrees[1].toDouble(), ageOf(info));
-            return;
+            _notify.invoke(degrees[0].toDouble(), degrees[1].toDouble(), ageOf(info));
         }
+        if (_done) { return; }
         enableLocation();
-        if (!_done) {
+        if (!_done && _polling) {
             var poll = new GpsRequest(self, _generation);
             _timer.start(poll.method(:onPoll), POLL_MS, true);
         }
@@ -58,6 +60,7 @@ class GpsTracker {
 
     function stop() {
         _done = true;
+        _polling = false;
         _generation += 1;
         _timer.stop();
         disableLocation();
@@ -68,13 +71,14 @@ class GpsTracker {
             return;
         }
         if (isFresh(info)) {
+            usedCache = false;
             var degrees = info.position.toDegrees();
             finish(degrees[0].toDouble(), degrees[1].toDouble(), null);
         }
     }
 
     function onPoll(generation) {
-        if (_done || generation != _generation) { return; }
+        if (_done || !_polling || generation != _generation) { return; }
         var info = null;
         try {
             info = Position.getInfo();
@@ -82,17 +86,13 @@ class GpsTracker {
             info = null;
         }
         if (info != null && isFresh(info)) {
+            usedCache = false;
             var degrees = info.position.toDegrees();
             finish(degrees[0].toDouble(), degrees[1].toDouble(), null);
             return;
         }
         if (elapsed() >= TIMEOUT_S) {
-            if (info != null && isRecentLastKnown(info)) {
-                var degrees = info.position.toDegrees();
-                finish(degrees[0].toDouble(), degrees[1].toDouble(), ageOf(info));
-            } else {
-                finish(null, null, null);
-            }
+            finish(null, null, null);
             return;
         }
         if (hasNoSignal(info)) {
@@ -116,7 +116,9 @@ class GpsTracker {
     }
 
     hidden function finish(lat, lon, staleAge) {
-        stop();
+        // Acquisition can time out, but later fresh callbacks must still reach the board.
+        _polling = false;
+        _timer.stop();
         _notify.invoke(lat, lon, staleAge);
     }
 

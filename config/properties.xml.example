@@ -1,0 +1,7 @@
+<!-- Copy to resources-local/properties.xml; never commit the local copy. -->
+<resources>
+    <properties>
+        <!-- HTTPS origin only, without a trailing slash or /mta. -->
+        <property id="proxyUrl" type="string">https://proxy.example.invalid</property>
+    </properties>
+</resources>

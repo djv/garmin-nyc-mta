@@ -8,8 +8,6 @@ using Toybox.System;
 // so the schedule is current when you leave without the phone.
 (:background)
 class PackService extends System.ServiceDelegate {
-    static const FALLBACK_BASE_URL = "https://proxy.example.net";
-
     function initialize() {
         ServiceDelegate.initialize();
     }
@@ -29,12 +27,8 @@ class PackService extends System.ServiceDelegate {
     static function url() {
         var k = key();
         if (k == null) { return null; }
-        var base = FALLBACK_BASE_URL;
-        try {
-            var v = Application.Properties.getValue("proxyUrl");
-            if (v instanceof Lang.String && (v as Lang.String).find("https://") == 0 &&
-                v.find("trycloudflare.com") == null) { base = v; }
-        } catch (ex) {}
+        var base = ProxyConfig.baseUrl();
+        if (base.length() == 0) { return null; }
         return base + "/mta/pack?key=" + Communications.encodeURL(k);
     }
 

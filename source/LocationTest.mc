@@ -21,11 +21,16 @@ class LocationBoardProbe extends BoardView {
     var gpsChecks = 0;
     var target = null;
     var latitude = null;
-    function initialize() { BoardView.initialize(); _visible = true; }
+    function initialize() {
+        BoardView.initialize(); _visible = true; _waitingForFix = true;
+        _tracker = new LiveGpsStub();
+    }
     function fetch(lat, lon, stale, gen) {
         calls += 1; target = _requestSelection; latitude = lat; _staleTag = stale;
     }
-    function refresh() { gpsChecks += 1; _nextLocation = System.getTimer() + LOCATION_MS; }
+    function refresh() { gpsChecks += 1; }
+    function refreshPack() {}
+    function lastKnown() { return null; }  // the simulator's position would pick a bundled station
     function run(station) {
         _fetching = true;
         onFix(null, null, null);
@@ -35,30 +40,32 @@ class LocationBoardProbe extends BoardView {
         Test.assert(_boardName.equals("Lorimer") && _boardArrivals != null);
         gpsChecks = 0;
         _fetching = true;
+        _waitingForFix = true;
         onFix(null, null, null);
         Test.assert(calls == 1 && target["station"]["id"].equals("L10"));
         Test.assert(locationLat == null && _staleTag.equals("Last station"));
+        _waitingForFix = true;
         onFix(40.7, -73.9, -1);
         Test.assert(locationLat == null && target != null);
+        _waitingForFix = true;
         onFix(40.7, -73.9, 301);
         Test.assert(locationLat == null);
+        _waitingForFix = true;
         onFix(40.7, -73.9, 60);
-        Test.assert(target == null && locationLat == 40.7 && _staleTag.equals("Saved GPS"));
+        Test.assert(target["station"]["id"].equals(nearby[0]["station"]["id"]) && locationLat == 40.7 && _staleTag.equals("Saved GPS"));
         onFix(40.8, -73.8, null);
-        Test.assert(latitude == 40.8 && locationLon == -73.8);
+        Test.assert(locationLat == 40.8 && locationLon == -73.8);
         _fetching = false;
-        _nextLocation = System.getTimer() + LOCATION_MS;
         onRefreshTick();
-        Test.assert(target == null && gpsChecks == 0);
+        Test.assert(target["station"]["id"].equals(nearby[0]["station"]["id"]) && gpsChecks == 0);
         _fetching = false;
-        _nextLocation = 0;
         onRefreshTick();
-        Test.assert(gpsChecks == 1);
+        Test.assert(gpsChecks == 0);
         selection = {"station" => station, "route" => "L", "dir" => "N"};
-        _nextLocation = 0;
+        _fetching = false;
         onRefreshTick();
-        Test.assert(gpsChecks == 1 && target["route"].equals("L"));
-        Test.assert(REFRESH_MS == 60000 && LOCATION_MS == 120000);
+        Test.assert(gpsChecks == 0 && target["route"].equals("L"));
+        Test.assert(REFRESH_MS == 60000 && FAST_REFRESH_MS == 30000);
         locationTime = System.getTimer() - 301000;
         validateLocation();
         Test.assert(locationLat == null && locationLon == null);

@@ -1,139 +1,143 @@
-# NYC MTA (Garmin fr965)
+# NYC MTA for Garmin
 
-Nearby station with four arrivals. No default location: without usable GPS,
-the last cached station is refreshed by ID and marked “Last station.”
+A Monkey C watch app for nearby NYC subway arrivals, with cached boards and a bundled offline station map.
 
-UI: MTA-colored circular route bullets; explicit 6X/7X/FX route IDs draw diamonds
-with the base route label. Ordinary express routes are not automatically diamonds.
-Colors follow https://www.mta.info/document/168976 and the bundled MTA routes.txt.
-Badges are also used in the glance. Destinations are white; times have their own
-right-aligned column. Saved GPS describes location reuse, separate from data age.
+<img src="shots/offline-nearest.png" alt="FR965 simulator showing an offline scheduled-departure pack at Parkside Av" width="340">
 
-## Hosted proxy
+Simulator capture of scheduled departures from an offline run pack, not live predictions.
+The manifest currently targets the Forerunner 965 only. This repo does not provide a
+public hosted service.
 
-`https://proxy.example.net`
+## Architecture
 
-Runs persistently on a VPS through Tailscale Funnel. No laptop proxy or tunnel
-is required. Endpoints: `GET /mta/health`, `GET /mta/board?lat&lon&limitStations=1&limitArrivals=4`.
-
-## Build
-
-```bash
-monkeyc -d fr965 -f monkey.jungle -o build/NycMta.prg -y ~/.garmin/developer_key.der
+```text
+Garmin watch → phone over Bluetooth → HTTPS proxy → MTA GTFS-realtime
+     ↓
+cached boards / scheduled run pack / bundled station map
 ```
 
-## Sideload
+The watch sends requests through Garmin Connect on the paired phone. The separate
+`mta-proxy` server combines MTA feeds and returns compact station boards. The watch renders arrivals and alerts, caches boards, and
+uses a chunked station dataset when requests fail. The map has no live predictions
+or schedules; an optional downloaded run pack supplies scheduled departures.
 
-USB → copy `build/NycMta.prg` to `GARMIN/APPS/`.
+`GET /mta/board` accepts `lat`, `lon`, `limitStations`, `limitArrivals`, and optional
+`station`, `route`, `dir=N|S`. The client requests five stations and eight arrivals,
+then shows four rows. The matching proxy must support filtering before the arrival
+limit and per-station `options` with direction/destination labels.
+`GET /mta/pack?key=…` fetches an optional pack prepared by a separate planning client.
 
-## Settings (Connect Mobile → watch → NYC MTA)
+## Features and limits
 
-- Proxy URL defaults to `https://proxy.example.net` (without `/mta`).
-  The app appends the API path. The exact old bundled Cloudflare URL is migrated
-  and saved automatically; other custom settings are preserved. Custom servers
-  require HTTPS with a trusted certificate. MTA upstream outages remain possible.
-- Distance defaults to Walking time (`~3 min walk`); the estimate walks the
-  straight-line distance at ~4.9 km/h and applies a 1.3x street-grid detour so
-  it is not optimistic in gridded Manhattan. Switch to Meters, Feet or Miles for
-  the raw straight-line distance. Applies to the board label and station menus.
-- Train buzz is Off by default; 2 or 5 minutes before the next cached arrival
-  the watch vibrates once. It only fires while the board is visible.
+- UP/DOWN cycles five nearby station complexes. START opens station, line and
+  direction choices, recent commutes and service alerts. Tap refreshes.
+- A glance shows the cached station and next train, with age/offline indicators.
+- The entrance arrow uses the watch compass and nearest mapped entry-allowed
+  entrance. It gives a direct bearing, not a walking route or accessibility guarantee.
+- Walking time uses straight-line distance with a 1.3× grid allowance. It is an estimate.
+- The offline map covers 231 station complexes, 260 platforms and 1,242 entrances
+  within 10 km of **E 11th St & University Pl (40.73330, -73.99332)**. “Home” hints
+  in the existing UI mean direct rides to this public reference area.
 
-## Run pack (offline scheduled trains home)
+The [dataset metadata](resources/stations/meta.json) records input hashes and dates.
+The bundled GTFS snapshot covers 2026-05-26 through 2026-10-31; its direct-ride hints
+can become stale after schedule changes. Regenerate when replacing the inputs.
+GPS acquisition, battery use, native Run continuity and compass accuracy need field
+checks; passing simulator tests does not establish those behaviors.
+Detailed fallback rules, timings and controls are in [docs/DESIGN.md](docs/DESIGN.md).
 
-For run-one-way-then-ride-home runs without the phone. A route planner posts the destination station plus up to three bail-out stations
-to the proxy (`POST /mta/pack`) under a private key. Enter that key once in
-Connect Mobile → NYC MTA → **Run pack key**. The app then fetches `GET /mta/pack` on open
-(at most every 10 min) and a background service refreshes it every 15 min while the
-phone is connected. The pack holds up to 30 scheduled departures per station for the
-next 4 hours that reach a station near home (one-seat rides, planned work included),
-with minutes to the door, entrances and alert titles; it expires after 36 h.
+## Privacy and settings
 
-When a live request fails (no phone), the board shows the pack station matching the
-selection, else the one within 1.5 km of the fix, else the run's destination:
-`Sched home` in the header, rows as route bullet, `by 22:01` (door arrival) and a
-countdown. The glance shows the destination's next scheduled train when offline or
-when nothing else is cached. Scheduled times can be a few minutes off real trains.
+Live board requests send latitude/longitude rounded to five decimal places. Selected
+station, route and direction may be sent together with the coordinates. A no-GPS
+cached-station refresh sends that station's point and ID instead. Both reveal location
+context to the proxy. HTTPS protects transport; the operator still sees these queries.
+This repo does not establish the operator's logging or retention policy.
 
-## Controls
+The watch stores a primary board, up to eight station boards with fetch timestamps,
+up to ten recent station/line/direction selections, a downloaded pack and app settings.
+Expired packs stop being used but are not automatically deleted from storage. Recents
+and cached boards have no automatic deletion deadline or in-app clear-data control.
+The proxy URL and optional pack key are app properties. The pack key travels in a
+query string; treat it as a credential and avoid logging full request URLs.
+No phone-location API is used, and there is no default GPS fix.
 
-Tap: refresh location and arrivals. UP/DOWN cycle through saved recent commutes
-(the first press with no selection picks the nearest/newest); START opens
-Stations. Automatic arrivals refresh every 60s, or every 30s while a train is
-within five minutes; automatic-nearest mode checks GPS every 120s while visible. Explicit station
-selections remain fixed. Valid cached arrivals appear immediately on opening.
-GPS fixes must have valid coordinates and be between zero and five minutes old;
-reused fixes are marked Saved GPS, independently of arrival age.
-A valid cached watch fix is used immediately, without waiting
-for GPS. After its arrival request completes, fresh GPS is acquired and arrivals
-are refreshed again; requests remain serialized. No phone location is used.
-No usable GPS means no distances. With no cached station, Waiting for GPS offers tap to retry
-or START for recent commutes. GPS wait is 9–15s; total request
-watchdog is 25s. Failed refreshes preserve old rows marked Offline with their age,
-or, when selecting another station, show that station's cached board marked
-Cached. The five nearby stations from each automatic query are cached separately
-(up to eight stations) so they can be browsed underground.
-Arrival timestamps count down on repaint; passed predictions are hidden, and
-predictions within 45 seconds read Now. Eight
-predictions are cached to refill the four visible rows between refreshes.
-Partial data is marked when a station's feeds are unavailable.
+Settings in Garmin Connect: **Proxy URL** (empty by default, HTTPS origin without a
+trailing slash or `/mta`), **Distance** (walking time/meters/feet/miles), **Train buzz**
+(off, 2 or 5 minutes; only while the board is visible), and **Run pack key** (optional;
+lowercased, at least ten characters). Board and pack clients share URL validation
+and reject temporary `trycloudflare.com` endpoints.
 
-An empty glance shows Open app and makes no requests. A populated glance
-refreshes its cached station by ID without GPS.
-# Station picker and recent commutes
+Permissions in [manifest.xml](manifest.xml): Positioning supplies watch GPS; Sensor
+supplies compass heading; Communications makes proxy requests; Background refreshes
+packs every 15 minutes when configured. The glance does not acquire GPS itself.
 
-The glance uses the most recently used saved selection matching its cached
-station, including that selection's line and direction on refresh. With no
-matching recent selection, it shows the next arrival across lines/directions.
-Glance refresh never changes recency. The board's top-center arrow points toward
-the nearest entry-allowed entrance of the displayed station, relative to the top of the watch face. The approximate straight-line distance appears beside it using the Distance setting (walking time by default); when no heading is available the label is centered without the arrow. Selection uses distance only, independent of train direction. Entrance data does not establish live availability or access to the selected platform. If entrances are unavailable, the arrow targets the station point without a distance. Hold the watch level
-to read it. Compass events run only while the board is visible. Missing heading
-(or no event for three seconds), missing/expired GPS, or coincident coordinates
-hide the arrow. Missing/expired GPS also hides the entrance distance; missing heading leaves the distance visible. This is a straight-line bearing, not walking directions.
+## Build and test
 
-Glance: while visible, checks every five seconds and refreshes arrivals once
-the cached data reaches one minute old. Requests time out after 15 seconds;
-failures retry after 30 seconds and retain the previous cache with an Offline
-indicator. Hiding the glance stops polling and invalidates pending callbacks.
-This is foreground refresh only, not a background service while the glance is hidden.
+Install Garmin's [Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/), its
+FR965 device files, and Java. Production and test builds were checked with SDK
+9.2.0; the manifest minimum API is 4.0.0. Put the SDK `bin` directory
+on `PATH`. Generate a local RSA developer key with OpenSSL if none exists:
 
-Press START/select (or hold UP/menu) on the board to open Stations. Tapping
-the board still refreshes. Choose Nearby stations, a line, then one of its
-two GTFS travel directions. Destination names label the directions; short-turn
-trains in the same direction remain included. All lines shows the whole station.
-Board and recent-commute labels use destinations (for example, `L to Canarsie`)
-instead of N/S bound. The two direction choices use shortened, deduplicated
-terminal names. Labels are saved with recents and updated from fresh station
-options without changing recency. Without new predictions, saved labels remain;
-older entries without a label show `Direction N/S` until refreshed. Direction
-IDs and train filtering are unchanged.
-BACK cancels the picker and returns to the board.
-When the proxy reports active service alerts for the displayed station's lines,
-the board meta adds `/ Alert`, the glance prefix shows `!`, and the Stations menu
-gains `Service alerts (N)`. Each alert opens a scrollable detail view (tap or
-DOWN for the next page, UP for the previous). Alert text is supplied by the MTA
-feed; the proxy strips markup and clips nothing on the watch, so long alerts page.
-Nearby and recent station rows show all served routes as MTA-colored bullets,
-including diamond variants. Badges wrap after seven routes; station names and
-distance/selection details remain above them. Routes describe station service,
-not a guarantee that each line currently has predictions.
+```sh
+mkdir -p "$HOME/.garmin" build
+openssl genrsa -out "$HOME/.garmin/developer_key.pem" 4096
+openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt \
+  -in "$HOME/.garmin/developer_key.pem" -out "$HOME/.garmin/developer_key.der"
+chmod 600 "$HOME/.garmin/developer_key.pem" "$HOME/.garmin/developer_key.der"
+```
 
-Selections are automatically kept as the 10 most recently used station/line/
-direction combinations. Reuse moves an entry to the newest position; an 11th
-unique selection evicts the least recently used. No favorites. The displayed
-list is distance-sorted when a location no more than five minutes old is
-available, otherwise most-recent-first. Entries with a cached board show
-`cached <age>`. Distances are approximate straight-line
-distances to GTFS station points, not walking routes or entrance distances.
-Walking-time estimates apply the 1.3x grid detour to that straight-line
-distance; the Meters/Feet/Miles units stay raw straight-line.
-Station coordinates never serve as the user’s location.
+Keep signing keys local. To set a build-time proxy default, copy
+`config/properties.xml.example` to `resources-local/properties.xml` and edit its URL.
+`monkey.jungle` loads that gitignored resource directory after the public resources.
+Without it, the default is empty and live requests are disabled until a URL is set
+in Garmin Connect. Existing installed custom properties are preserved.
 
-Automatic nearest clears the filter and reacquires location. A selected station
-stays selected during refresh; background refresh does not change recency.
-Nearby entries are from the last automatic-location query (up to five GTFS
-station points, merged where applicable).
+```sh
+export OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2
+monkeyc -d fr965 -f monkey.jungle -o build/NycMta.prg -y "$HOME/.garmin/developer_key.der"
+monkeyc -t -d fr965 -f monkey.jungle -o build/Tests.prg -y "$HOME/.garmin/developer_key.der"
+# Start the SDK simulator, then run these separately:
+monkeydo build/Tests.prg fr965 -t
+monkeydo build/NycMta.prg fr965
+```
 
-Requires the matching proxy update: optional `station`, `route`, and `dir=N|S`
-board parameters, with filtering before the arrival limit, plus per-station
-`options` containing route, direction and destination labels.
+The simulator requires a display; Linux can use a private Xvfb display for tests.
+Some SDK runners exit 1 even after a `PASSED` summary: check the passed/failed/error
+counts, not just the exit status. Tests cover location validity/lifecycle, stale
+callbacks, offline data, caching, menus, directions, formatting and proxy settings.
+The compiler performs Monkey C checks; no separate lint/type-check suite is configured.
+For USB sideloading, copy `build/NycMta.prg` to the watch's `GARMIN/APPS/` directory.
+`dev-loop.sh` is an optional desktop screenshot helper; its environment overrides
+are listed at the top of the script. It restarts MonkeyDo launchers and focuses the
+simulator window, so automated checks should use a separate headless display.
+On Linux it optionally adds compatibility libraries from `$HOME/code/.webkit/libs`
+or `GARMIN_WEBKIT_LIBS`; if that directory is missing, it uses system libraries.
+
+## Regenerate offline data
+
+Python 3's standard library is sufficient. The station CSV is included; the two
+larger inputs are external. Obtain the exact snapshots recorded in
+[meta.json](resources/stations/meta.json) from the proxy checkout or its listed MTA
+sources. A fresh upstream download may have different hashes and outputs.
+
+```sh
+python3 tools/build_stations.py --gtfs "$MTA_GTFS_ZIP" --entrances "$MTA_ENTRANCES_JSON"
+python3 tools/build_stations.py --gtfs "$MTA_GTFS_ZIP" --entrances "$MTA_ENTRANCES_JSON" --check
+```
+
+By default those inputs are read from `$HOME/code/mta-proxy/google_transit.zip` and
+`$HOME/code/mta-proxy/data/entrances-2024.json`. `--check` rebuilds in memory and compares
+all generated files byte for byte; it needs the same inputs as generation.
+
+## Repo layout
+
+- `source/`: watch code and `*Test.mc` simulator tests; `StationData.mc` is generated.
+- `resources/stations/`: coordinate index, 16-station chunks and provenance metadata.
+- `tools/build_stations.py`, `tools/data/`: deterministic generator and station CSV.
+- `resources/settings/`, `config/`: public defaults and a local-override example.
+- `shots/`: simulator captures. `docs/DESIGN.md`: detailed watch behavior.
+- `resources/drawables/`: SVG launcher source and PNG; `render_icon.py` uses system librsvg/cairo.
+
+Code is under the [MIT license](LICENSE). MTA input provenance is recorded separately
+in the dataset metadata.

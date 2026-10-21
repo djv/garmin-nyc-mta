@@ -1,7 +1,7 @@
 <resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="http://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <properties>
-        <property id="proxyUrl" type="string">https://proxy.example.net</property>
+        <property id="proxyUrl" type="string"></property>
         <property id="distanceUnit" type="number">0</property>
         <property id="vibrateLead" type="number">0</property>
         <property id="packKey" type="string"></property>
